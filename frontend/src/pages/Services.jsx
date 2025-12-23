@@ -101,7 +101,7 @@ export default function Services() {
     if (!isAuthed || role !== 'CUSTOMER') {
       return navigate('/login', { replace: true })
     }
-    navigate(`/services/${listing.id}/book`)
+    navigate(`/services/${listing.id}/book`, { state: { providerId: listing.providerId } })
   }
 
   return (

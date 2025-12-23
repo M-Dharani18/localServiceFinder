@@ -39,14 +39,26 @@ export default function CustomerBookings() {
         ) : (
           <div className="space-y-3">
             {items.map((b) => (
-              <div key={b.id} className="bg-white border rounded p-4 flex items-center justify-between">
-                <div>
-                  <div className="font-medium">{b.serviceName || `Listing #${b.listingId}`}</div>
-                  <div className="text-sm text-gray-600">{b.providerName || `Provider #${b.providerId}`}</div>
-                  <div className="text-sm text-gray-700">{format(new Date(b.bookingDateTime), 'EEE, dd MMM yyyy - hh:mm a')}</div>
-                </div>
-                <div className="text-sm">
-                  <span className="px-2 py-1 rounded border bg-gray-50">{b.status}</span>
+              <div key={b.id} className="bg-white border rounded p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="font-medium">{b.serviceName || `Listing #${b.listingId}`}</div>
+                    <div className="text-sm text-gray-600">
+                      {b.providerName || `Provider #${b.providerId}`}
+                      {b.providerEmail ? ` • ${b.providerEmail}` : ''}
+                    </div>
+                    <div className="text-sm text-gray-700">{format(new Date(b.bookingDateTime), 'EEE, dd MMM yyyy - hh:mm a')}</div>
+                    {b.notes && (
+                      <div className="text-sm text-gray-700 mt-1">Notes: {b.notes}</div>
+                    )}
+                    <div className="text-xs text-gray-500 mt-1">
+                      #{b.id} • Created {b.createdAt ? format(new Date(b.createdAt), 'dd MMM yyyy, hh:mm a') : '—'}
+                      {b.updatedAt && ` • Updated ${format(new Date(b.updatedAt), 'dd MMM yyyy, hh:mm a')}`}
+                    </div>
+                  </div>
+                  <div className="text-sm">
+                    <span className="px-2 py-1 rounded border bg-gray-50">{b.status}</span>
+                  </div>
                 </div>
               </div>
             ))}

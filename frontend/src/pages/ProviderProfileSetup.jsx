@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import api from '@/api/axios'
+import { useAuth } from '@/context/AuthContext'
 
 // This page is shown to providers after first login to complete their profile
 // Adjust fields to match your backend payload for provider profile and categories
 export default function ProviderProfileSetup() {
+  const { user } = useAuth()
   const [form, setForm] = useState({
     businessName: '',
     phone: '',
@@ -22,6 +24,32 @@ export default function ProviderProfileSetup() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+
+  // Load existing profile if any
+  useEffect(() => {
+    const providerId = user?.id
+    if (!providerId) return
+    setError('')
+    setMessage('')
+    ;(async () => {
+      try {
+        const res = await api.get(`/provider/profile/${providerId}`)
+        const data = res?.data
+        if (data) {
+          setForm({
+            businessName: data.businessName || '',
+            phone: data.phone || '',
+            city: data.city || '',
+            area: data.area || '',
+            categories: Array.isArray(data.categories) ? data.categories : [],
+            description: data.description || '',
+          })
+        }
+      } catch (e) {
+        // 404 means not created yet; ignore. Other errors show briefly.
+      }
+    })()
+  }, [user?.id])
 
   const onChange = (e) => {
     const { name, value } = e.target
@@ -44,11 +72,14 @@ export default function ProviderProfileSetup() {
     setError('')
     setLoading(true)
     try {
-      // Adjust endpoint & payload to your backend
-      await api.post('/provider/profile', form)
+      const providerId = user?.id
+      if (!providerId) throw new Error('Missing provider id')
+      // Send providerId with payload
+      await api.post('/provider/profile', { providerId, ...form })
       setMessage('Profile saved successfully')
     } catch (err) {
-      setError(err?.response?.data?.message || 'Failed to save profile')
+      const server = err?.response?.data
+      setError(typeof server === 'string' ? server : (server?.message || server?.error || 'Failed to save profile'))
     } finally {
       setLoading(false)
     }

@@ -12,6 +12,7 @@ import Services from '@/pages/Services'
 import BookService from '@/pages/BookService'
 import CustomerBookings from '@/pages/CustomerBookings'
 import ProviderBookings from '@/pages/ProviderBookings'
+import ProviderTimeSlots from '@/pages/ProviderTimeSlots'
 
 function HomeRedirect() {
   const { role } = useAuth()
@@ -38,6 +39,7 @@ export default function App() {
           <Route path="/provider/setup" element={<ProviderProfileSetup />} />
           <Route path="/provider/listings" element={<ProviderListings />} />
           <Route path="/provider/bookings" element={<ProviderBookings />} />
+          <Route path="/provider/timeslots" element={<ProviderTimeSlots />} />
         </Route>
       </Route>
 

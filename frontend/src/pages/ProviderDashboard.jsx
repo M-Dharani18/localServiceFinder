@@ -22,6 +22,9 @@ export default function ProviderDashboard() {
           <Link to="/provider/listings" className="block p-4 rounded-lg bg-white shadow border hover:bg-gray-50">
             Manage Service Listings
           </Link>
+          <Link to="/provider/timeslots" className="block p-4 rounded-lg bg-white shadow border hover:bg-gray-50">
+            Manage Availability (Time Slots)
+          </Link>
           <Link to="/provider/bookings" className="block p-4 rounded-lg bg-white shadow border hover:bg-gray-50">
             Incoming Bookings
           </Link>
