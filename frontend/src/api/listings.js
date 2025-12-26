@@ -17,3 +17,7 @@ export const advancedSearchApi = (payload) => api.post('/listings/customer/advan
 // Dropdown options
 export const getCategoriesApi = () => api.get('/listings/customer/categories').then(r => r.data)
 export const getLocationsApi = () => api.get('/listings/customer/locations').then(r => r.data)
+
+// Add this to your existing listing.js API file
+export const getListingByIdApi = (listingId) => 
+  api.get(`/listings/${listingId}`).then(r => r.data)
