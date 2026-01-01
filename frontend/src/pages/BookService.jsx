@@ -1166,6 +1166,467 @@
 
 
 
+// import { useEffect, useMemo, useState } from 'react'
+// import { useParams, useNavigate, Link, useLocation } from 'react-router-dom'
+// import { getAvailableSlotsByListingApi, getAvailableSlotsByProviderApi } from '@/api/timeslots'
+// import { createBookingApi } from '@/api/bookings'
+// import { useAuth } from '@/context/AuthContext'
+// import {
+//   format,
+//   startOfMonth,
+//   endOfMonth,
+//   startOfWeek,
+//   endOfWeek,
+//   addDays,
+//   addMonths,
+//   subMonths,
+//   isSameMonth,
+//   isSameDay,
+//   parseISO,
+//   isToday,
+//   isPast,
+//   isBefore,
+//   startOfDay,
+// } from 'date-fns'
+
+// export default function BookService() {
+//   const { id } = useParams()
+//   const navigate = useNavigate()
+//   const location = useLocation()
+//   const { user } = useAuth()
+//   const providerFromState = location?.state?.providerId
+
+//   const [slots, setSlots] = useState([])
+//   const [loading, setLoading] = useState(true)
+//   const [error, setError] = useState('')
+//   const [notes, setNotes] = useState('')
+//   const [currentMonth, setCurrentMonth] = useState(() => new Date())
+//   const [selectedDate, setSelectedDate] = useState('')
+//   const [selectedSlot, setSelectedSlot] = useState(null)
+//   const [booking, setBooking] = useState(false)
+
+//   const serviceInfo = slots.length > 0 ? slots[0] : null
+
+//   const load = async () => {
+//     setLoading(true)
+//     setError('')
+//     try {
+//       let data = await getAvailableSlotsByListingApi(id)
+//       if ((!data || data.length === 0) && providerFromState) {
+//         const provData = await getAvailableSlotsByProviderApi(providerFromState)
+//         data = provData || []
+//       }
+//       setSlots(data || [])
+//       if (!selectedDate && data && data.length) {
+//         const first = data[0]
+//         const d = format(new Date(first.startTime), 'yyyy-MM-dd')
+//         setSelectedDate(d)
+//       }
+//     } catch (e) {
+//       setError(e?.response?.data?.message || 'Failed to load availability')
+//     } finally {
+//       setLoading(false)
+//     }
+//   }
+
+//   useEffect(() => { load() }, [id, providerFromState])
+  
+//   useEffect(() => {
+//     const t = setInterval(() => {
+//       Promise.all([
+//         getAvailableSlotsByListingApi(id).catch(() => []),
+//         providerFromState ? getAvailableSlotsByProviderApi(providerFromState).catch(() => []) : Promise.resolve([]),
+//       ]).then(([byListing, byProvider]) => {
+//         const chosen = (byListing && byListing.length > 0) ? byListing : byProvider
+//         if (Array.isArray(chosen)) setSlots(chosen)
+//       }).catch(() => {})
+//     }, 20000)
+//     return () => clearInterval(t)
+//   }, [id, providerFromState])
+
+//   const onBook = async (slot) => {
+//     setBooking(true)
+//     try {
+//       await createBookingApi({
+//         customerId: user?.id,
+//         providerId: slot.providerId,
+//         listingId: slot.listingId,
+//         bookingDateTime: slot.startTime,
+//         notes: notes || undefined,
+//       })
+//       navigate('/customer/bookings', { replace: true })
+//     } catch (e) {
+//       alert(e?.response?.data?.message || 'Booking failed')
+//     } finally {
+//       setBooking(false)
+//     }
+//   }
+
+//   const weeks = useMemo(() => {
+//     const start = startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 0 })
+//     const end = endOfWeek(endOfMonth(currentMonth), { weekStartsOn: 0 })
+//     const days = []
+//     let day = start
+//     while (day <= end) {
+//       days.push(day)
+//       day = addDays(day, 1)
+//     }
+//     return Array.from({ length: Math.ceil(days.length / 7) }, (_, i) => days.slice(i * 7, i * 7 + 7))
+//   }, [currentMonth])
+
+//   const timesForSelectedDate = useMemo(() => {
+//     if (!selectedDate) return []
+//     return (slots || []).filter((s) => format(new Date(s.startTime), 'yyyy-MM-dd') === selectedDate)
+//       .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+//   }, [slots, selectedDate])
+
+//   const availableDates = useMemo(() => {
+//     return new Set(slots.map(s => format(new Date(s.startTime), 'yyyy-MM-dd')))
+//   }, [slots])
+
+//   const isDateDisabled = (date) => {
+//     const dateStr = format(date, 'yyyy-MM-dd')
+//     const isPastDate = isBefore(date, startOfDay(new Date()))
+//     return !availableDates.has(dateStr) || isPastDate
+//   }
+
+//   return (
+//     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-50 to-slate-100">
+//       {/* Header */}
+//       <div className="bg-white border-b border-slate-200/80 backdrop-blur-sm sticky top-0 z-10">
+//         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+//           <div className="flex items-center justify-between">
+//             <div className="flex items-center space-x-3">
+//               <div className="p-2 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg shadow-lg">
+//                 <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+//                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+//                 </svg>
+//               </div>
+//               <div>
+//                 <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Book Appointment</h1>
+//                 {serviceInfo && (
+//                   <p className="text-sm text-slate-600 mt-1">
+//                     {serviceInfo.serviceName || `Listing #${serviceInfo.listingId}`} • {serviceInfo.providerName || `Provider #${serviceInfo.providerId}`}
+//                   </p>
+//                 )}
+//               </div>
+//             </div>
+//             <Link 
+//               className="px-4 py-2.5 text-sm font-medium text-slate-700 hover:text-slate-900 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-all duration-200 shadow-sm hover:shadow"
+//               to="customer/services"
+//             >
+//               ← Back to Services
+//             </Link>
+//           </div>
+//         </div>
+//       </div>
+
+//       {loading ? (
+//         <div className="flex items-center justify-center min-h-[60vh]">
+//           <div className="text-center space-y-4">
+//             <div className="relative">
+//               <div className="w-16 h-16 border-4 border-slate-200 border-t-indigo-600 rounded-full animate-spin"></div>
+//               <div className="absolute inset-0 flex items-center justify-center">
+//                 <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-full animate-pulse"></div>
+//               </div>
+//             </div>
+//             <div>
+//               <p className="text-slate-700 font-medium">Loading availability...</p>
+//               <p className="text-sm text-slate-500 mt-1">Fetching the latest time slots</p>
+//             </div>
+//           </div>
+//         </div>
+//       ) : error ? (
+//         <div className="max-w-4xl mx-auto p-4 sm:p-6">
+//           <div className="p-6 rounded-xl border border-red-200 bg-gradient-to-r from-red-50/50 to-rose-50/50 backdrop-blur-sm">
+//             <div className="flex items-start space-x-3">
+//               <div className="p-2 bg-red-100 rounded-lg">
+//                 <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+//                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+//                 </svg>
+//               </div>
+//               <div>
+//                 <h3 className="font-semibold text-red-800">Unable to load availability</h3>
+//                 <p className="text-red-600 mt-1">{error}</p>
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+//       ) : slots.length === 0 ? (
+//         <div className="max-w-4xl mx-auto p-4 sm:p-6">
+//           <div className="text-center py-16 bg-white rounded-xl border-2 border-dashed border-slate-300">
+//             <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full mb-6">
+//               <svg className="w-10 h-10 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+//                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+//               </svg>
+//             </div>
+//             <h3 className="text-xl font-bold text-slate-800 mb-2">No Available Time Slots</h3>
+//             <p className="text-slate-600 max-w-md mx-auto">There are no available appointments at the moment. Please check back later or contact the provider directly.</p>
+//           </div>
+//         </div>
+//       ) : (
+//         <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+//           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+//             {/* Calendar Section */}
+//             <div className="lg:col-span-2 space-y-6">
+//               {/* Calendar Card */}
+//               <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+//                 <div className="p-6 md:p-8">
+//                   {/* Month Navigation */}
+//                   <div className="flex items-center justify-between mb-8">
+//                     <button 
+//                       className="p-2.5 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-all duration-200 shadow-sm active:scale-95"
+//                       onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+//                     >
+//                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+//                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+//                       </svg>
+//                     </button>
+//                     <div className="text-center">
+//                       <h2 className="text-2xl font-bold text-slate-900 tracking-tight">{format(currentMonth, 'MMMM yyyy')}</h2>
+//                       <p className="text-sm text-slate-500 mt-1">Select an available date</p>
+//                     </div>
+//                     <button 
+//                       className="p-2.5 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-all duration-200 shadow-sm active:scale-95"
+//                       onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+//                     >
+//                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+//                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+//                       </svg>
+//                     </button>
+//                   </div>
+                  
+//                   {/* Day Headers */}
+//                   <div className="grid grid-cols-7 gap-1 mb-2">
+//                     {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d) => (
+//                       <div key={d} className="text-center py-3 text-sm font-semibold text-slate-600 uppercase tracking-wider">
+//                         {d}
+//                       </div>
+//                     ))}
+//                   </div>
+                  
+//                   {/* Calendar Grid */}
+//                   <div className="grid grid-cols-7 gap-1">
+//                     {weeks.map((week, wi) => (
+//                       week.map((d) => {
+//                         const ds = format(d, 'yyyy-MM-dd')
+//                         const isSelected = selectedDate && isSameDay(d, parseISO(`${selectedDate}T00:00:00`))
+//                         const isAvailable = availableDates.has(ds)
+//                         const isCurrentMonth = isSameMonth(d, currentMonth)
+//                         const isTodayDate = isToday(d)
+//                         const disabled = isDateDisabled(d)
+                        
+//                         return (
+//                           <button
+//                             key={ds}
+//                             onClick={() => !disabled && setSelectedDate(ds)}
+//                             disabled={disabled}
+//                             className={`
+//                               aspect-square rounded-lg flex flex-col items-center justify-center text-sm font-medium transition-all duration-200
+//                               ${isSelected 
+//                                 ? 'bg-gradient-to-br from-indigo-600 to-indigo-700 text-white shadow-lg scale-105 ring-2 ring-indigo-500 ring-offset-2' 
+//                                 : isAvailable && isCurrentMonth && !disabled
+//                                 ? 'bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200 text-indigo-900 hover:scale-105 hover:shadow-md hover:border-indigo-300'
+//                                 : isCurrentMonth && !disabled
+//                                 ? 'bg-white border border-slate-200 text-slate-900 hover:bg-slate-50'
+//                                 : 'bg-slate-50 border border-slate-100 text-slate-400'
+//                               }
+//                               ${!isCurrentMonth ? 'opacity-50' : ''}
+//                               ${disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'}
+//                               ${isTodayDate && !isSelected ? 'border-2 border-indigo-400' : ''}
+//                             `}
+//                           >
+//                             <span className={`${isTodayDate && !isSelected ? 'text-indigo-600 font-bold' : ''}`}>
+//                               {format(d, 'd')}
+//                             </span>
+//                             {isAvailable && isCurrentMonth && !disabled && (
+//                               <span className={`w-1.5 h-1.5 rounded-full mt-1 ${isSelected ? 'bg-white' : 'bg-indigo-500'}`}></span>
+//                             )}
+//                           </button>
+//                         )
+//                       })
+//                     ))}
+//                   </div>
+
+//                   {/* Legend */}
+//                   <div className="flex flex-wrap items-center justify-center gap-4 mt-8 pt-6 border-t border-slate-200">
+//                     <div className="flex items-center gap-2">
+//                       <div className="w-3 h-3 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600"></div>
+//                       <span className="text-xs text-slate-600 font-medium">Selected</span>
+//                     </div>
+//                     <div className="flex items-center gap-2">
+//                       <div className="w-3 h-3 rounded-full bg-gradient-to-br from-indigo-100 to-indigo-200 border border-indigo-300"></div>
+//                       <span className="text-xs text-slate-600 font-medium">Available</span>
+//                     </div>
+//                     <div className="flex items-center gap-2">
+//                       <div className="w-3 h-3 rounded-full bg-white border border-slate-300"></div>
+//                       <span className="text-xs text-slate-600 font-medium">Unavailable</span>
+//                     </div>
+//                     <div className="flex items-center gap-2">
+//                       <div className="w-3 h-3 rounded-full border-2 border-indigo-400 bg-white"></div>
+//                       <span className="text-xs text-slate-600 font-medium">Today</span>
+//                     </div>
+//                   </div>
+//                 </div>
+//               </div>
+
+//               {/* Selected Date Times */}
+//               {selectedDate && (
+//                 <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+//                   <div className="flex items-center justify-between mb-6">
+//                     <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+//                       <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+//                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+//                       </svg>
+//                       Available Times for {format(parseISO(`${selectedDate}T00:00:00`), 'EEEE, MMMM d')}
+//                     </h3>
+//                     <span className="text-sm font-medium text-slate-600 bg-slate-100 px-3 py-1 rounded-full">
+//                       {timesForSelectedDate.length} slot{timesForSelectedDate.length !== 1 ? 's' : ''}
+//                     </span>
+//                   </div>
+//                   {timesForSelectedDate.length === 0 ? (
+//                     <div className="text-center py-8">
+//                       <svg className="w-12 h-12 text-slate-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+//                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+//                       </svg>
+//                       <p className="text-slate-600 font-medium">No available times for this date</p>
+//                       <p className="text-sm text-slate-500 mt-1">Please select another date</p>
+//                     </div>
+//                   ) : (
+//                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+//                       {timesForSelectedDate.map((s) => (
+//                         <button
+//                           key={s.id}
+//                           onClick={() => setSelectedSlot(s)}
+//                           className={`
+//                             py-3 px-4 rounded-xl text-sm font-medium transition-all duration-200
+//                             ${selectedSlot?.id === s.id 
+//                               ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-lg ring-2 ring-indigo-500 ring-offset-2 transform scale-105' 
+//                               : 'bg-white border border-slate-300 text-slate-900 hover:border-indigo-400 hover:bg-indigo-50 hover:shadow'
+//                             }
+//                           `}
+//                         >
+//                           {format(new Date(s.startTime), 'h:mm a')}
+//                         </button>
+//                       ))}
+//                     </div>
+//                   )}
+//                 </div>
+//               )}
+//             </div>
+
+//             {/* Booking Details Sidebar */}
+//             <div className="space-y-6">
+//               {/* Service Details Card */}
+//               {serviceInfo && (
+//                 <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+//                   <h3 className="text-lg font-bold text-slate-900 mb-6 pb-3 border-b border-slate-200 flex items-center gap-2">
+//                     <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+//                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+//                     </svg>
+//                     Service Details
+//                   </h3>
+//                   <div className="space-y-4">
+//                     <div>
+//                       <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Service</p>
+//                       <p className="text-base font-semibold text-slate-900">{serviceInfo.serviceName || `Listing #${serviceInfo.listingId}`}</p>
+//                     </div>
+//                     <div>
+//                       <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Provider</p>
+//                       <p className="text-base font-semibold text-slate-900">{serviceInfo.providerName || `Provider #${serviceInfo.providerId}`}</p>
+//                     </div>
+//                     {serviceInfo.price && (
+//                       <div>
+//                         <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Price</p>
+//                         <p className="text-2xl font-bold text-indigo-600">${serviceInfo.price}</p>
+//                       </div>
+//                     )}
+//                   </div>
+//                 </div>
+//               )}
+
+//               {/* Notes Card */}
+//               <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+//                 <label className="block text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+//                   <svg className="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+//                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+//                   </svg>
+//                   Additional Notes (Optional)
+//                 </label>
+//                 <textarea 
+//                   value={notes} 
+//                   onChange={(e) => setNotes(e.target.value)} 
+//                   rows={4} 
+//                   className="w-full px-4 py-3 text-sm rounded-lg border border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 outline-none resize-none bg-white"
+//                   placeholder="Any special requests, instructions, or information for your provider..."
+//                 />
+//                 <p className="text-xs text-slate-500 mt-2">This will be shared with your service provider</p>
+//               </div>
+
+//               {/* Booking Summary */}
+//               <div className="bg-gradient-to-br from-indigo-50 to-indigo-100/50 border border-indigo-200 rounded-2xl p-6">
+//                 <h3 className="text-lg font-bold text-slate-900 mb-4">Booking Summary</h3>
+                
+//                 <div className="space-y-3 mb-6">
+//                   <div className="flex items-center justify-between text-sm">
+//                     <span className="text-slate-600">Date:</span>
+//                     <span className="font-medium text-slate-900">
+//                       {selectedDate ? format(parseISO(`${selectedDate}T00:00:00`), 'MMM d, yyyy') : '--'}
+//                     </span>
+//                   </div>
+//                   <div className="flex items-center justify-between text-sm">
+//                     <span className="text-slate-600">Time:</span>
+//                     <span className="font-medium text-slate-900">
+//                       {selectedSlot ? format(new Date(selectedSlot.startTime), 'h:mm a') : '--'}
+//                     </span>
+//                   </div>
+//                   <div className="flex items-center justify-between text-sm">
+//                     <span className="text-slate-600">Duration:</span>
+//                     <span className="font-medium text-slate-900">
+//                       {selectedSlot ? '1 hour' : '--'}
+//                     </span>
+//                   </div>
+//                   {serviceInfo?.price && (
+//                     <div className="flex items-center justify-between text-sm pt-3 border-t border-indigo-200/50">
+//                       <span className="text-slate-600">Total:</span>
+//                       <span className="text-lg font-bold text-indigo-600">${serviceInfo.price}</span>
+//                     </div>
+//                   )}
+//                 </div>
+
+//                 <button
+//                   disabled={!selectedSlot || booking}
+//                   onClick={() => selectedSlot && onBook(selectedSlot)}
+//                   className="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:from-indigo-700 hover:to-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3"
+//                 >
+//                   {booking ? (
+//                     <>
+//                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+//                       <span>Processing...</span>
+//                     </>
+//                   ) : (
+//                     <>
+//                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+//                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+//                       </svg>
+//                       <span>Confirm Appointment</span>
+//                     </>
+//                   )}
+//                 </button>
+                
+//                 <p className="text-xs text-slate-600 text-center mt-4">
+//                   You'll receive a confirmation email with appointment details
+//                 </p>
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+//       )}
+//     </div>
+//   )
+// }
+
+
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom'
 import { getAvailableSlotsByListingApi, getAvailableSlotsByProviderApi } from '@/api/timeslots'
@@ -1195,6 +1656,7 @@ export default function BookService() {
   const location = useLocation()
   const { user } = useAuth()
   const providerFromState = location?.state?.providerId
+  const listingDataFromState = location?.state?.listingData
 
   const [slots, setSlots] = useState([])
   const [loading, setLoading] = useState(true)
@@ -1205,7 +1667,7 @@ export default function BookService() {
   const [selectedSlot, setSelectedSlot] = useState(null)
   const [booking, setBooking] = useState(false)
 
-  const serviceInfo = slots.length > 0 ? slots[0] : null
+  const serviceInfo = slots.length > 0 ? slots[0] : listingDataFromState
 
   const load = async () => {
     setLoading(true)
@@ -1313,7 +1775,7 @@ export default function BookService() {
             </div>
             <Link 
               className="px-4 py-2.5 text-sm font-medium text-slate-700 hover:text-slate-900 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-all duration-200 shadow-sm hover:shadow"
-              to="/services"
+              to="/customer/services"
             >
               ← Back to Services
             </Link>
@@ -1367,45 +1829,45 @@ export default function BookService() {
       ) : (
         <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-            {/* Calendar Section */}
+            {/* Calendar Section - Made more compact */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Calendar Card */}
-              <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
-                <div className="p-6 md:p-8">
-                  {/* Month Navigation */}
-                  <div className="flex items-center justify-between mb-8">
+              {/* Calendar Card - Reduced size */}
+              <div className="bg-white rounded-xl shadow border border-slate-200 overflow-hidden">
+                <div className="p-4 md:p-6">
+                  {/* Month Navigation - Made more compact */}
+                  <div className="flex items-center justify-between mb-4">
                     <button 
-                      className="p-2.5 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-all duration-200 shadow-sm active:scale-95"
+                      className="p-2 rounded-md bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-all duration-200 active:scale-95"
                       onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
                     >
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                       </svg>
                     </button>
                     <div className="text-center">
-                      <h2 className="text-2xl font-bold text-slate-900 tracking-tight">{format(currentMonth, 'MMMM yyyy')}</h2>
-                      <p className="text-sm text-slate-500 mt-1">Select an available date</p>
+                      <h2 className="text-lg font-bold text-slate-900">{format(currentMonth, 'MMMM yyyy')}</h2>
+                      <p className="text-xs text-slate-500 mt-1">Select an available date</p>
                     </div>
                     <button 
-                      className="p-2.5 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-all duration-200 shadow-sm active:scale-95"
+                      className="p-2 rounded-md bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-all duration-200 active:scale-95"
                       onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
                     >
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
                     </button>
                   </div>
                   
-                  {/* Day Headers */}
+                  {/* Day Headers - Reduced size */}
                   <div className="grid grid-cols-7 gap-1 mb-2">
-                    {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d) => (
-                      <div key={d} className="text-center py-3 text-sm font-semibold text-slate-600 uppercase tracking-wider">
+                    {['S','M','T','W','T','F','S'].map((d) => (
+                      <div key={d} className="text-center py-1.5 text-xs font-semibold text-slate-600">
                         {d}
                       </div>
                     ))}
                   </div>
                   
-                  {/* Calendar Grid */}
+                  {/* Calendar Grid - Made cells smaller */}
                   <div className="grid grid-cols-7 gap-1">
                     {weeks.map((week, wi) => (
                       week.map((d) => {
@@ -1422,11 +1884,11 @@ export default function BookService() {
                             onClick={() => !disabled && setSelectedDate(ds)}
                             disabled={disabled}
                             className={`
-                              aspect-square rounded-lg flex flex-col items-center justify-center text-sm font-medium transition-all duration-200
+                              h-8 sm:h-10 w-8 sm:w-13 rounded-md flex items-center justify-center text-xs sm:text-sm transition-all duration-200
                               ${isSelected 
-                                ? 'bg-gradient-to-br from-indigo-600 to-indigo-700 text-white shadow-lg scale-105 ring-2 ring-indigo-500 ring-offset-2' 
+                                ? 'bg-gradient-to-br from-indigo-600 to-indigo-700 text-white shadow scale-105 ring-1 ring-indigo-500' 
                                 : isAvailable && isCurrentMonth && !disabled
-                                ? 'bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200 text-indigo-900 hover:scale-105 hover:shadow-md hover:border-indigo-300'
+                                ? 'bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200 text-indigo-900 hover:scale-105 hover:shadow hover:border-indigo-300'
                                 : isCurrentMonth && !disabled
                                 ? 'bg-white border border-slate-200 text-slate-900 hover:bg-slate-50'
                                 : 'bg-slate-50 border border-slate-100 text-slate-400'
@@ -1440,7 +1902,7 @@ export default function BookService() {
                               {format(d, 'd')}
                             </span>
                             {isAvailable && isCurrentMonth && !disabled && (
-                              <span className={`w-1.5 h-1.5 rounded-full mt-1 ${isSelected ? 'bg-white' : 'bg-indigo-500'}`}></span>
+                              <span className={`absolute w-1 h-1 rounded-full bottom-1 ${isSelected ? 'bg-white' : 'bg-indigo-500'}`}></span>
                             )}
                           </button>
                         )
@@ -1448,60 +1910,59 @@ export default function BookService() {
                     ))}
                   </div>
 
-                  {/* Legend */}
-                  <div className="flex flex-wrap items-center justify-center gap-4 mt-8 pt-6 border-t border-slate-200">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600"></div>
-                      <span className="text-xs text-slate-600 font-medium">Selected</span>
+                  {/* Legend - Made more compact */}
+                  <div className="flex flex-wrap items-center justify-center gap-3 mt-6 pt-4 border-t border-slate-200">
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600"></div>
+                      <span className="text-xs text-slate-600">Selected</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-gradient-to-br from-indigo-100 to-indigo-200 border border-indigo-300"></div>
-                      <span className="text-xs text-slate-600 font-medium">Available</span>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-gradient-to-br from-indigo-100 to-indigo-200 border border-indigo-300"></div>
+                      <span className="text-xs text-slate-600">Available</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-white border border-slate-300"></div>
-                      <span className="text-xs text-slate-600 font-medium">Unavailable</span>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-white border border-slate-300"></div>
+                      <span className="text-xs text-slate-600">Unavailable</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full border-2 border-indigo-400 bg-white"></div>
-                      <span className="text-xs text-slate-600 font-medium">Today</span>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full border-2 border-indigo-400 bg-white"></div>
+                      <span className="text-xs text-slate-600">Today</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Selected Date Times */}
+              {/* Selected Date Times - Made more compact */}
               {selectedDate && (
-                <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                      <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="bg-white rounded-xl shadow border border-slate-200 p-4 md:p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      Available Times for {format(parseISO(`${selectedDate}T00:00:00`), 'EEEE, MMMM d')}
+                      {format(parseISO(`${selectedDate}T00:00:00`), 'EEE, MMM d')}
                     </h3>
-                    <span className="text-sm font-medium text-slate-600 bg-slate-100 px-3 py-1 rounded-full">
+                    <span className="text-xs font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
                       {timesForSelectedDate.length} slot{timesForSelectedDate.length !== 1 ? 's' : ''}
                     </span>
                   </div>
                   {timesForSelectedDate.length === 0 ? (
-                    <div className="text-center py-8">
-                      <svg className="w-12 h-12 text-slate-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="text-center py-4">
+                      <svg className="w-8 h-8 text-slate-400 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      <p className="text-slate-600 font-medium">No available times for this date</p>
-                      <p className="text-sm text-slate-500 mt-1">Please select another date</p>
+                      <p className="text-slate-600 text-sm">No available times for this date</p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
                       {timesForSelectedDate.map((s) => (
                         <button
                           key={s.id}
                           onClick={() => setSelectedSlot(s)}
                           className={`
-                            py-3 px-4 rounded-xl text-sm font-medium transition-all duration-200
+                            py-2 px-3 rounded-lg text-xs font-medium transition-all duration-200
                             ${selectedSlot?.id === s.id 
-                              ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-lg ring-2 ring-indigo-500 ring-offset-2 transform scale-105' 
+                              ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow ring-1 ring-indigo-500 transform scale-105' 
                               : 'bg-white border border-slate-300 text-slate-900 hover:border-indigo-400 hover:bg-indigo-50 hover:shadow'
                             }
                           `}
@@ -1515,80 +1976,79 @@ export default function BookService() {
               )}
             </div>
 
-            {/* Booking Details Sidebar */}
+            {/* Booking Details Sidebar - Adjusted for compactness */}
             <div className="space-y-6">
-              {/* Service Details Card */}
+              {/* Service Details Card - More compact */}
               {serviceInfo && (
-                <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-                  <h3 className="text-lg font-bold text-slate-900 mb-6 pb-3 border-b border-slate-200 flex items-center gap-2">
-                    <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="bg-white rounded-xl shadow border border-slate-200 p-4 md:p-6">
+                  <h3 className="text-base font-bold text-slate-900 mb-4 pb-2 border-b border-slate-200 flex items-center gap-2">
+                    <svg className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                     </svg>
                     Service Details
                   </h3>
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <div>
                       <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Service</p>
-                      <p className="text-base font-semibold text-slate-900">{serviceInfo.serviceName || `Listing #${serviceInfo.listingId}`}</p>
+                      <p className="text-sm font-semibold text-slate-900">{serviceInfo.serviceName || `Listing #${serviceInfo.listingId}`}</p>
                     </div>
                     <div>
                       <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Provider</p>
-                      <p className="text-base font-semibold text-slate-900">{serviceInfo.providerName || `Provider #${serviceInfo.providerId}`}</p>
+                      <p className="text-sm font-semibold text-slate-900">{serviceInfo.providerName || `Provider #${serviceInfo.providerId}`}</p>
                     </div>
                     {serviceInfo.price && (
                       <div>
                         <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Price</p>
-                        <p className="text-2xl font-bold text-indigo-600">${serviceInfo.price}</p>
+                        <p className="text-xl font-bold text-indigo-600">${serviceInfo.price}</p>
                       </div>
                     )}
                   </div>
                 </div>
               )}
 
-              {/* Notes Card */}
-              <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-                <label className="block text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                  <svg className="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              {/* Notes Card - More compact */}
+              <div className="bg-white rounded-xl shadow border border-slate-200 p-4 md:p-6">
+                <label className="block text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
-                  Additional Notes (Optional)
+                  Notes (Optional)
                 </label>
                 <textarea 
                   value={notes} 
                   onChange={(e) => setNotes(e.target.value)} 
-                  rows={4} 
-                  className="w-full px-4 py-3 text-sm rounded-lg border border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 outline-none resize-none bg-white"
-                  placeholder="Any special requests, instructions, or information for your provider..."
+                  rows={3} 
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 transition-all duration-200 outline-none resize-none bg-white"
+                  placeholder="Any special requests or instructions..."
                 />
-                <p className="text-xs text-slate-500 mt-2">This will be shared with your service provider</p>
               </div>
 
-              {/* Booking Summary */}
-              <div className="bg-gradient-to-br from-indigo-50 to-indigo-100/50 border border-indigo-200 rounded-2xl p-6">
-                <h3 className="text-lg font-bold text-slate-900 mb-4">Booking Summary</h3>
+              {/* Booking Summary - More compact */}
+              <div className="bg-gradient-to-br from-indigo-50 to-indigo-100/50 border border-indigo-200 rounded-xl p-4 md:p-6">
+                <h3 className="text-base font-bold text-slate-900 mb-3">Booking Summary</h3>
                 
-                <div className="space-y-3 mb-6">
-                  <div className="flex items-center justify-between text-sm">
+                <div className="space-y-2 mb-4">
+                  <div className="flex items-center justify-between text-xs">
                     <span className="text-slate-600">Date:</span>
                     <span className="font-medium text-slate-900">
                       {selectedDate ? format(parseISO(`${selectedDate}T00:00:00`), 'MMM d, yyyy') : '--'}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center justify-between text-xs">
                     <span className="text-slate-600">Time:</span>
                     <span className="font-medium text-slate-900">
                       {selectedSlot ? format(new Date(selectedSlot.startTime), 'h:mm a') : '--'}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center justify-between text-xs">
                     <span className="text-slate-600">Duration:</span>
                     <span className="font-medium text-slate-900">
                       {selectedSlot ? '1 hour' : '--'}
                     </span>
                   </div>
                   {serviceInfo?.price && (
-                    <div className="flex items-center justify-between text-sm pt-3 border-t border-indigo-200/50">
-                      <span className="text-slate-600">Total:</span>
+                    <div className="flex items-center justify-between text-xs pt-2 border-t border-indigo-200/50">
+                      <span className="text-slate-600 font-semibold">Total:</span>
                       <span className="text-lg font-bold text-indigo-600">${serviceInfo.price}</span>
                     </div>
                   )}
@@ -1597,25 +2057,25 @@ export default function BookService() {
                 <button
                   disabled={!selectedSlot || booking}
                   onClick={() => selectedSlot && onBook(selectedSlot)}
-                  className="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:from-indigo-700 hover:to-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3"
+                  className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-bold rounded-lg shadow hover:shadow-md hover:from-indigo-700 hover:to-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2"
                 >
                   {booking ? (
                     <>
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Processing...</span>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span className="text-sm">Processing...</span>
                     </>
                   ) : (
                     <>
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      <span>Confirm Appointment</span>
+                      <span className="text-sm">Confirm Appointment</span>
                     </>
                   )}
                 </button>
                 
-                <p className="text-xs text-slate-600 text-center mt-4">
-                  You'll receive a confirmation email with appointment details
+                <p className="text-xs text-slate-600 text-center mt-3">
+                  Confirmation email will be sent
                 </p>
               </div>
             </div>

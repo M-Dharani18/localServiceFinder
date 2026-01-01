@@ -189,23 +189,857 @@
 
 
 
+// import { useEffect, useMemo, useState } from 'react'
+// import {
+//   getAllAvailableListingsApi,
+//   searchListingsApi,
+//   filterByCategoryApi,
+//   filterByLocationApi,
+//   advancedSearchApi,
+//   getCategoriesApi,
+//   getLocationsApi,
+// } from '@/api/listings'
+// import ListingCard from '@/components/ListingCard'
+// import { useAuth } from '@/context/AuthContext'
+// import { useNavigate } from 'react-router-dom'
+
+// export default function Services() {
+//   const { role, isAuthed } = useAuth()
+//   const navigate = useNavigate()
+//   const [list, setList] = useState([])
+//   const [loading, setLoading] = useState(true)
+//   const [error, setError] = useState('')
+
+//   const [categories, setCategories] = useState([])
+//   const [locations, setLocations] = useState([])
+
+//   const [filters, setFilters] = useState({
+//     keyword: '',
+//     category: '',
+//     location: '',
+//     minPrice: '',
+//     maxPrice: '',
+//     sortBy: '',
+//   })
+
+//   const hasAnyFilter = useMemo(() => {
+//     return Object.values(filters).some((v) => String(v || '').trim() !== '')
+//   }, [filters])
+
+//   const loadBase = async () => {
+//     setLoading(true)
+//     setError('')
+//     try {
+//       const data = await getAllAvailableListingsApi()
+//       setList(data || [])
+//     } catch (e) {
+//       setError(e?.response?.data?.message || 'Failed to load services')
+//     } finally {
+//       setLoading(false)
+//     }
+//   }
+
+//   const loadOptions = async () => {
+//     try {
+//       const [cats, locs] = await Promise.all([getCategoriesApi(), getLocationsApi()])
+//       setCategories(cats || [])
+//       setLocations(locs || [])
+//     } catch {
+//       // non-blocking
+//     }
+//   }
+
+//   useEffect(() => {
+//     loadBase()
+//     loadOptions()
+//   }, [])
+
+//   const onChange = (e) => {
+//     const { name, value } = e.target
+//     setFilters((f) => ({ ...f, [name]: value }))
+//   }
+
+//   const onClear = () => {
+//     setFilters({ keyword: '', category: '', location: '', minPrice: '', maxPrice: '', sortBy: '' })
+//     loadBase()
+//   }
+
+//   const onSearch = async (e) => {
+//     e?.preventDefault?.()
+//     setLoading(true)
+//     setError('')
+//     try {
+//       const payload = {
+//         keyword: filters.keyword || undefined,
+//         category: filters.category || undefined,
+//         location: filters.location || undefined,
+//         minPrice: filters.minPrice ? Number(filters.minPrice) : undefined,
+//         maxPrice: filters.maxPrice ? Number(filters.maxPrice) : undefined,
+//         sortBy: filters.sortBy || undefined,
+//       }
+//       const data = await advancedSearchApi(payload)
+//       setList(data || [])
+//     } catch (e) {
+//       setError(e?.response?.data?.message || 'Failed to search')
+//     } finally {
+//       setLoading(false)
+//     }
+//   }
+
+//   const onBook = (listing) => {
+//     if (!isAuthed || role !== 'CUSTOMER') {
+//       return navigate('/login', { replace: true })
+//     }
+//     navigate(`customer/services/${listing.id}/book`, { state: { providerId: listing.providerId } })
+//   }
+
+//   return (
+//     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50">
+//       <div className="max-w-7xl mx-auto p-6">
+//         <div className="mb-8">
+//           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">
+//             Find Services
+//           </h1>
+//           <p className="text-gray-600">Discover and book the perfect service for your needs</p>
+//         </div>
+
+//         <form onSubmit={onSearch} className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 mb-8">
+//           <h2 className="text-xl font-bold text-gray-800 mb-6">🔍 Search & Filter</h2>
+          
+//           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+//             <div>
+//               <label className="block text-sm font-semibold text-gray-700 mb-2">Keyword</label>
+//               <input 
+//                 name="keyword" 
+//                 value={filters.keyword} 
+//                 onChange={onChange} 
+//                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none" 
+//                 placeholder="Search by name or description" 
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-semibold text-gray-700 mb-2">Category</label>
+//               <select 
+//                 name="category" 
+//                 value={filters.category} 
+//                 onChange={onChange} 
+//                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none"
+//               >
+//                 <option value="">All Categories</option>
+//                 {categories.map((c) => (
+//                   <option key={c} value={c}>{c}</option>
+//                 ))}
+//               </select>
+//             </div>
+//             <div>
+//               <label className="block text-sm font-semibold text-gray-700 mb-2">Location</label>
+//               <select 
+//                 name="location" 
+//                 value={filters.location} 
+//                 onChange={onChange} 
+//                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none"
+//               >
+//                 <option value="">All Locations</option>
+//                 {locations.map((l) => (
+//                   <option key={l} value={l}>{l}</option>
+//                 ))}
+//               </select>
+//             </div>
+//           </div>
+          
+//           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+//             <div>
+//               <label className="block text-sm font-semibold text-gray-700 mb-2">Min Price ($)</label>
+//               <input 
+//                 name="minPrice" 
+//                 type="number" 
+//                 step="0.01" 
+//                 value={filters.minPrice} 
+//                 onChange={onChange} 
+//                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none"
+//                 placeholder="0.00"
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-semibold text-gray-700 mb-2">Max Price ($)</label>
+//               <input 
+//                 name="maxPrice" 
+//                 type="number" 
+//                 step="0.01" 
+//                 value={filters.maxPrice} 
+//                 onChange={onChange} 
+//                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none"
+//                 placeholder="1000.00"
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-semibold text-gray-700 mb-2">Sort By</label>
+//               <select 
+//                 name="sortBy" 
+//                 value={filters.sortBy} 
+//                 onChange={onChange} 
+//                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none"
+//               >
+//                 <option value="">Default</option>
+//                 <option value="price_asc">Price: Low to High</option>
+//                 <option value="price_desc">Price: High to Low</option>
+//                 <option value="relevance">Relevance</option>
+//               </select>
+//             </div>
+//           </div>
+          
+//           <div className="flex items-center gap-3 justify-end pt-4">
+//             <button 
+//               type="button" 
+//               onClick={onClear} 
+//               className="px-6 py-3 rounded-xl border-2 border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition-all"
+//             >
+//               Clear Filters
+//             </button>
+//             <button 
+//               type="submit" 
+//               className="px-8 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold shadow-lg hover:shadow-xl hover:from-blue-700 hover:to-cyan-700 transition-all"
+//             >
+//               🔍 Search
+//             </button>
+//           </div>
+//         </form>
+
+//         <div>
+//           <div className="flex items-center justify-between mb-5">
+//             <h2 className="text-2xl font-bold text-gray-800">
+//               {hasAnyFilter ? '🎯 Search Results' : '📋 All Services'}
+//             </h2>
+//             {list.length > 0 && (
+//               <span className="text-sm text-gray-600 bg-gray-100 px-4 py-2 rounded-full font-medium">
+//                 {list.length} {list.length === 1 ? 'service' : 'services'} found
+//               </span>
+//             )}
+//           </div>
+          
+//           {loading ? (
+//             <div className="text-center py-12">
+//               <div className="inline-block w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+//               <p className="mt-4 text-gray-600">Loading services...</p>
+//             </div>
+//           ) : error ? (
+//             <div className="p-4 rounded-xl border border-red-200 bg-gradient-to-r from-red-50 to-rose-50 text-red-700">
+//               <span className="font-medium">{error}</span>
+//             </div>
+//           ) : list.length === 0 ? (
+//             <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-gray-300">
+//               <div className="text-5xl mb-4">🔍</div>
+//               <p className="text-gray-600 text-lg mb-2">No services found</p>
+//               <p className="text-gray-500 text-sm">Try adjusting your search filters</p>
+//             </div>
+//           ) : (
+//             <div className="space-y-4">
+//               {list.map((l) => (
+//                 <ListingCard
+//                   key={l.id}
+//                   listing={l}
+//                   action={
+//                     <button 
+//                       className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold shadow-lg hover:shadow-xl hover:from-green-700 hover:to-emerald-700 transition-all" 
+//                       onClick={() => onBook(l)}
+//                     >
+//                       📅 Book Now
+//                     </button>
+//                   }
+//                 />
+//               ))}
+//             </div>
+//           )}
+//         </div>
+//       </div>
+//     </div>
+//   )
+// }
+
+
+// import { useEffect, useMemo, useState } from 'react'
+// import {
+//   getAllAvailableListingsApi,
+//   searchListingsApi,
+//   filterByCategoryApi,
+//   filterByLocationApi,
+//   advancedSearchApi,
+//   getCategoriesApi,
+//   getLocationsApi,
+// } from '@/api/listings'
+// import ListingCard from '@/components/ListingCard'
+// import { useAuth } from '@/context/AuthContext'
+// import { useNavigate } from 'react-router-dom'
+
+// export default function Services() {
+//   const { role, isAuthed } = useAuth()
+//   const navigate = useNavigate()
+//   const [list, setList] = useState([])
+//   const [loading, setLoading] = useState(true)
+//   const [error, setError] = useState('')
+
+//   const [categories, setCategories] = useState([])
+//   const [locations, setLocations] = useState([])
+
+//   const [filters, setFilters] = useState({
+//     keyword: '',
+//     category: '',
+//     location: '',
+//     minPrice: '',
+//     maxPrice: '',
+//     sortBy: '',
+//   })
+
+//   const hasAnyFilter = useMemo(() => {
+//     return Object.values(filters).some((v) => String(v || '').trim() !== '')
+//   }, [filters])
+
+//   const loadBase = async () => {
+//     setLoading(true)
+//     setError('')
+//     try {
+//       const data = await getAllAvailableListingsApi()
+//       setList(data || [])
+//     } catch (e) {
+//       setError(e?.response?.data?.message || 'Failed to load services')
+//     } finally {
+//       setLoading(false)
+//     }
+//   }
+
+//   const loadOptions = async () => {
+//     try {
+//       const [cats, locs] = await Promise.all([getCategoriesApi(), getLocationsApi()])
+//       setCategories(cats || [])
+//       setLocations(locs || [])
+//     } catch {
+//       // non-blocking
+//     }
+//   }
+
+//   useEffect(() => {
+//     loadBase()
+//     loadOptions()
+//   }, [])
+
+//   const onChange = (e) => {
+//     const { name, value } = e.target
+//     setFilters((f) => ({ ...f, [name]: value }))
+//   }
+
+//   const onClear = () => {
+//     setFilters({ keyword: '', category: '', location: '', minPrice: '', maxPrice: '', sortBy: '' })
+//     loadBase()
+//   }
+
+//   const onSearch = async (e) => {
+//     e?.preventDefault?.()
+//     setLoading(true)
+//     setError('')
+//     try {
+//       const payload = {
+//         keyword: filters.keyword || undefined,
+//         category: filters.category || undefined,
+//         location: filters.location || undefined,
+//         minPrice: filters.minPrice ? Number(filters.minPrice) : undefined,
+//         maxPrice: filters.maxPrice ? Number(filters.maxPrice) : undefined,
+//         sortBy: filters.sortBy || undefined,
+//       }
+//       const data = await advancedSearchApi(payload)
+//       setList(data || [])
+//     } catch (e) {
+//       setError(e?.response?.data?.message || 'Failed to search')
+//     } finally {
+//       setLoading(false)
+//     }
+//   }
+
+//   const onBook = (listing) => {
+//     // FIXED ROUTE: Changed from /services/{id}/book to /customer/services/{id}/book
+//     if (!isAuthed || role !== 'CUSTOMER') {
+//       return navigate('/login', { replace: true })
+//     }
+//     navigate(`/customer/services/${listing.id}/book`, { state: { providerId: listing.providerId } })
+//   }
+
+//   return (
+//     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50">
+//       <div className="max-w-7xl mx-auto p-6">
+//         <div className="mb-8">
+//           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">
+//             Find Services
+//           </h1>
+//           <p className="text-gray-600">Discover and book the perfect service for your needs</p>
+//         </div>
+
+//         <form onSubmit={onSearch} className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 mb-8">
+//           <h2 className="text-xl font-bold text-gray-800 mb-6">🔍 Search & Filter</h2>
+          
+//           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+//             <div>
+//               <label className="block text-sm font-semibold text-gray-700 mb-2">Keyword</label>
+//               <input 
+//                 name="keyword" 
+//                 value={filters.keyword} 
+//                 onChange={onChange} 
+//                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none" 
+//                 placeholder="Search by name or description" 
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-semibold text-gray-700 mb-2">Category</label>
+//               <select 
+//                 name="category" 
+//                 value={filters.category} 
+//                 onChange={onChange} 
+//                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none"
+//               >
+//                 <option value="">All Categories</option>
+//                 {categories.map((c) => (
+//                   <option key={c} value={c}>{c}</option>
+//                 ))}
+//               </select>
+//             </div>
+//             <div>
+//               <label className="block text-sm font-semibold text-gray-700 mb-2">Location</label>
+//               <select 
+//                 name="location" 
+//                 value={filters.location} 
+//                 onChange={onChange} 
+//                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none"
+//               >
+//                 <option value="">All Locations</option>
+//                 {locations.map((l) => (
+//                   <option key={l} value={l}>{l}</option>
+//                 ))}
+//               </select>
+//             </div>
+//           </div>
+          
+//           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+//             <div>
+//               <label className="block text-sm font-semibold text-gray-700 mb-2">Min Price ($)</label>
+//               <input 
+//                 name="minPrice" 
+//                 type="number" 
+//                 step="0.01" 
+//                 value={filters.minPrice} 
+//                 onChange={onChange} 
+//                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none"
+//                 placeholder="0.00"
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-semibold text-gray-700 mb-2">Max Price ($)</label>
+//               <input 
+//                 name="maxPrice" 
+//                 type="number" 
+//                 step="0.01" 
+//                 value={filters.maxPrice} 
+//                 onChange={onChange} 
+//                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none"
+//                 placeholder="1000.00"
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-semibold text-gray-700 mb-2">Sort By</label>
+//               <select 
+//                 name="sortBy" 
+//                 value={filters.sortBy} 
+//                 onChange={onChange} 
+//                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none"
+//               >
+//                 <option value="">Default</option>
+//                 <option value="price_asc">Price: Low to High</option>
+//                 <option value="price_desc">Price: High to Low</option>
+//                 <option value="relevance">Relevance</option>
+//               </select>
+//             </div>
+//           </div>
+          
+//           <div className="flex items-center gap-3 justify-end pt-4">
+//             <button 
+//               type="button" 
+//               onClick={onClear} 
+//               className="px-6 py-3 rounded-xl border-2 border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition-all"
+//             >
+//               Clear Filters
+//             </button>
+//             <button 
+//               type="submit" 
+//               className="px-8 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold shadow-lg hover:shadow-xl hover:from-blue-700 hover:to-cyan-700 transition-all"
+//             >
+//               🔍 Search
+//             </button>
+//           </div>
+//         </form>
+
+//         <div>
+//           <div className="flex items-center justify-between mb-5">
+//             <h2 className="text-2xl font-bold text-gray-800">
+//               {hasAnyFilter ? '🎯 Search Results' : '📋 All Services'}
+//             </h2>
+//             {list.length > 0 && (
+//               <span className="text-sm text-gray-600 bg-gray-100 px-4 py-2 rounded-full font-medium">
+//                 {list.length} {list.length === 1 ? 'service' : 'services'} found
+//               </span>
+//             )}
+//           </div>
+          
+//           {loading ? (
+//             <div className="text-center py-12">
+//               <div className="inline-block w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+//               <p className="mt-4 text-gray-600">Loading services...</p>
+//             </div>
+//           ) : error ? (
+//             <div className="p-4 rounded-xl border border-red-200 bg-gradient-to-r from-red-50 to-rose-50 text-red-700">
+//               <span className="font-medium">{error}</span>
+//             </div>
+//           ) : list.length === 0 ? (
+//             <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-gray-300">
+//               <div className="text-5xl mb-4">🔍</div>
+//               <p className="text-gray-600 text-lg mb-2">No services found</p>
+//               <p className="text-gray-500 text-sm">Try adjusting your search filters</p>
+//             </div>
+//           ) : (
+//             <div className="space-y-4">
+//               {list.map((l) => (
+//                 <ListingCard
+//                   key={l.id}
+//                   listing={l}
+//                   action={
+//                     <button 
+//                       className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold shadow-lg hover:shadow-xl hover:from-green-700 hover:to-emerald-700 transition-all" 
+//                       onClick={() => onBook(l)}
+//                     >
+//                       📅 Book Now
+//                     </button>
+//                   }
+//                 />
+//               ))}
+//             </div>
+//           )}
+//         </div>
+//       </div>
+//     </div>
+//   )
+// }
+
+
+// import { useEffect, useMemo, useState } from 'react'
+// import {
+//   getAllAvailableListingsApi,
+//   advancedSearchApi,
+//   getCategoriesApi,
+//   getLocationsApi,
+// } from '@/api/listings'
+// import { useAuth } from '@/context/AuthContext'
+// import { useNavigate } from 'react-router-dom'
+// export default function Services() {
+//   const { role, isAuthed } = useAuth()
+//   const navigate = useNavigate() 
+//   const [list, setList] = useState([])
+//   const [loading, setLoading] = useState(true)
+//   const [error, setError] = useState('')
+
+//   const [categories, setCategories] = useState([])
+//   const [locations, setLocations] = useState([])
+
+//   const [filters, setFilters] = useState({
+//     keyword: '',
+//     category: '',
+//     location: '',
+//     minPrice: '',
+//     maxPrice: '',
+//     sortBy: '',
+//   })
+
+//   const hasAnyFilter = useMemo(() => {
+//     return Object.values(filters).some((v) => String(v || '').trim() !== '')
+//   }, [filters])
+
+//   const loadBase = async () => {
+//     setLoading(true)
+//     setError('')
+//     try {
+//       const data = await getAllAvailableListingsApi()
+//       setList(data || [])
+//     } catch (e) {
+//       setError(e?.response?.data?.message || 'Failed to load services')
+//     } finally {
+//       setLoading(false)
+//     }
+//   }
+
+//   const loadOptions = async () => {
+//     try {
+//       const [cats, locs] = await Promise.all([getCategoriesApi(), getLocationsApi()])
+//       setCategories(cats || [])
+//       setLocations(locs || [])
+//     } catch {
+//       // non-blocking
+//     }
+//   }
+
+//   useEffect(() => {
+//     loadBase()
+//     loadOptions()
+//   }, [])
+
+//   const onChange = (e) => {
+//     const { name, value } = e.target
+//     setFilters((f) => ({ ...f, [name]: value }))
+//   }
+
+//   const onClear = () => {
+//     setFilters({ keyword: '', category: '', location: '', minPrice: '', maxPrice: '', sortBy: '' })
+//     loadBase()
+//   }
+
+//   const onSearch = async () => {
+//     setLoading(true)
+//     setError('')
+//     try {
+//       const payload = {
+//         keyword: filters.keyword || undefined,
+//         category: filters.category || undefined,
+//         location: filters.location || undefined,
+//         minPrice: filters.minPrice ? Number(filters.minPrice) : undefined,
+//         maxPrice: filters.maxPrice ? Number(filters.maxPrice) : undefined,
+//         sortBy: filters.sortBy || undefined,
+//       }
+//       const data = await advancedSearchApi(payload)
+//       setList(data || [])
+//     } catch (e) {
+//       setError(e?.response?.data?.message || 'Failed to search')
+//     } finally {
+//       setLoading(false)
+//     }
+//   }
+
+//   const onBook = (listing) => {
+//     // Navigation handled by parent app
+//     if (!isAuthed || role !== 'CUSTOMER') {
+//       alert('Please login as a customer to book services')
+//       return
+//     }
+//     console.log('Booking service:', listing)
+//   }
+
+//   return (
+//     <div className="fixed inset-0 bg-gradient-to-br from-purple-50 via-white to-fuchsia-50 overflow-auto pt-20">
+//       <div className="max-w-7xl mx-auto px-6 py-6">
+//         <div className="mb-8">
+//           <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-fuchsia-600 bg-clip-text text-transparent mb-2">
+//             Find Services
+//           </h1>
+//           <p className="text-gray-600">Discover and book the perfect service for your needs</p>
+//         </div>
+
+//         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 mb-8">
+//           <h2 className="text-xl font-bold text-gray-800 mb-6"> Search & Filter</h2>
+          
+//           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+//             <div>
+//               <label className="block text-sm font-semibold text-gray-700 mb-2">Keyword</label>
+//               <input 
+//                 name="keyword" 
+//                 value={filters.keyword} 
+//                 onChange={onChange} 
+//                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all outline-none" 
+//                 placeholder="Search by name or description" 
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-semibold text-gray-700 mb-2">Category</label>
+//               <select 
+//                 name="category" 
+//                 value={filters.category} 
+//                 onChange={onChange} 
+//                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all outline-none"
+//               >
+//                 <option value="">All Categories</option>
+//                 {categories.map((c) => (
+//                   <option key={c} value={c}>{c}</option>
+//                 ))}
+//               </select>
+//             </div>
+//             <div>
+//               <label className="block text-sm font-semibold text-gray-700 mb-2">Location</label>
+//               <select 
+//                 name="location" 
+//                 value={filters.location} 
+//                 onChange={onChange} 
+//                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all outline-none"
+//               >
+//                 <option value="">All Locations</option>
+//                 {locations.map((l) => (
+//                   <option key={l} value={l}>{l}</option>
+//                 ))}
+//               </select>
+//             </div>
+//           </div>
+          
+//           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+//             <div>
+//               <label className="block text-sm font-semibold text-gray-700 mb-2">Min Price (₹)</label>
+//               <input 
+//                 name="minPrice" 
+//                 type="number" 
+//                 step="0.01" 
+//                 value={filters.minPrice} 
+//                 onChange={onChange} 
+//                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all outline-none"
+//                 placeholder="0.00"
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-semibold text-gray-700 mb-2">Max Price (₹)</label>
+//               <input 
+//                 name="maxPrice" 
+//                 type="number" 
+//                 step="0.01" 
+//                 value={filters.maxPrice} 
+//                 onChange={onChange} 
+//                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all outline-none"
+//                 placeholder="1000.00"
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-semibold text-gray-700 mb-2">Sort By</label>
+//               <select 
+//                 name="sortBy" 
+//                 value={filters.sortBy} 
+//                 onChange={onChange} 
+//                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all outline-none"
+//               >
+//                 <option value="">Default</option>
+//                 <option value="price_asc">Price: Low to High</option>
+//                 <option value="price_desc">Price: High to Low</option>
+//                 <option value="relevance">Relevance</option>
+//               </select>
+//             </div>
+//           </div>
+          
+//           <div className="flex items-center gap-3 justify-end pt-4">
+//             <button 
+//               type="button" 
+//               onClick={onClear} 
+//               className="px-6 py-3 rounded-xl border-2 border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition-all"
+//             >
+//               Clear Filters
+//             </button>
+//             <button 
+//               type="button"
+//               onClick={onSearch} 
+//               className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white font-semibold shadow-lg hover:shadow-xl hover:from-purple-700 hover:to-fuchsia-700 transition-all"
+//             >
+//                Search
+//             </button>
+//           </div>
+//         </div>
+
+//         <div>
+//           <div className="flex items-center justify-between mb-5">
+//             <h2 className="text-2xl font-bold text-gray-800">
+//               {hasAnyFilter ? ' Search Results' : '📋 All Services'}
+//             </h2>
+//             {list.length > 0 && (
+//               <span className="text-sm text-gray-600 bg-white px-4 py-2 rounded-full font-medium shadow-sm border border-gray-200">
+//                 {list.length} {list.length === 1 ? 'service' : 'services'} found
+//               </span>
+//             )}
+//           </div>
+          
+//           {loading ? (
+//             <div className="text-center py-12">
+//               <div className="inline-block w-8 h-8 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
+//               <p className="mt-4 text-gray-600">Loading services...</p>
+//             </div>
+//           ) : error ? (
+//             <div className="p-4 rounded-xl border border-red-200 bg-gradient-to-r from-red-50 to-rose-50 text-red-700">
+//               <span className="font-medium">{error}</span>
+//             </div>
+//           ) : list.length === 0 ? (
+//             <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-gray-300">
+//               <div className="text-5xl mb-4"></div>
+//               <p className="text-gray-600 text-lg mb-2">No services found</p>
+//               <p className="text-gray-500 text-sm">Try adjusting your search filters</p>
+//             </div>
+//           ) : (
+//             <div className="space-y-4">
+//               {list.map((l) => (
+//                 <div key={l.id} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
+//                   <div className="flex items-start justify-between gap-6">
+//                     <div className="flex-1">
+//                       <div className="flex items-center gap-3 mb-3">
+//                         <h3 className="text-xl font-bold text-gray-800">
+//                           {l.serviceName}
+//                         </h3>
+//                         <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-700 border border-emerald-200">
+//                           Available
+//                         </span>
+//                       </div>
+                      
+//                       {l.description && (
+//                         <p className="text-gray-600 mb-3">{l.description}</p>
+//                       )}
+                      
+//                       <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+//                         <div className="flex items-center gap-2">
+//                           <span className="font-semibold"> Price:</span>
+//                           <span className="text-lg font-bold text-purple-500">₹{l.price}</span>
+//                         </div>
+//                         <div className="flex items-center gap-2">
+//                           <span className="font-semibold"> Category:</span>
+//                           <span className="text-purple-700 text-md font-medium">{l.category}</span>
+//                         </div>
+//                         <div className="flex items-center gap-2">
+//                           <span className="font-semibold"> Location:</span>
+//                           <span>{l.location}</span>
+//                         </div>
+//                       </div>
+                      
+//                       {l.imageUrl && (
+//                         <div className="mt-3">
+//                           <img src={l.imageUrl} alt={l.serviceName} className="h-32 w-auto rounded-lg object-cover" />
+//                         </div>
+//                       )}
+//                     </div>
+//                   </div>
+                  
+//                   <div className="mt-4 pt-4 border-t border-gray-100">
+//                     <button 
+//                       className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white font-semibold shadow-lg hover:shadow-xl hover:from-purple-700 hover:to-fuchsia-700 transition-all" 
+//                       onClick={() => onBook(l)}
+//                     >
+//                       Book Now
+//                     </button>
+//                   </div>
+//                 </div>
+//               ))}
+//             </div>
+//           )}
+//         </div>
+//       </div>
+//     </div>
+//   )
+// }
+
+
 import { useEffect, useMemo, useState } from 'react'
 import {
   getAllAvailableListingsApi,
-  searchListingsApi,
-  filterByCategoryApi,
-  filterByLocationApi,
   advancedSearchApi,
   getCategoriesApi,
   getLocationsApi,
 } from '@/api/listings'
-import ListingCard from '@/components/ListingCard'
 import { useAuth } from '@/context/AuthContext'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom' // Add this import
 
 export default function Services() {
   const { role, isAuthed } = useAuth()
-  const navigate = useNavigate()
+  const navigate = useNavigate() // Add this hook
   const [list, setList] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -264,8 +1098,7 @@ export default function Services() {
     loadBase()
   }
 
-  const onSearch = async (e) => {
-    e?.preventDefault?.()
+  const onSearch = async () => {
     setLoading(true)
     setError('')
     try {
@@ -287,24 +1120,28 @@ export default function Services() {
   }
 
   const onBook = (listing) => {
+    // Check if user is authenticated and has customer role
     if (!isAuthed || role !== 'CUSTOMER') {
-      return navigate('/login', { replace: true })
+      alert('Please login as a customer to book services')
+      navigate('/login', { replace: true }) // Navigate to login page
+      return
     }
-    navigate(`/services/${listing.id}/book`, { state: { providerId: listing.providerId } })
+    // Navigate to booking page with listing ID
+    navigate(`/customer/services/${listing.id}/book`, { state: { providerId: listing.providerId } })
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50">
-      <div className="max-w-7xl mx-auto p-6">
+    <div className="fixed inset-0 bg-gradient-to-br from-purple-50 via-white to-fuchsia-50 overflow-auto pt-20">
+      <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-fuchsia-600 bg-clip-text text-transparent mb-2">
             Find Services
           </h1>
           <p className="text-gray-600">Discover and book the perfect service for your needs</p>
         </div>
 
-        <form onSubmit={onSearch} className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 mb-8">
-          <h2 className="text-xl font-bold text-gray-800 mb-6">🔍 Search & Filter</h2>
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 mb-8">
+          <h2 className="text-xl font-bold text-gray-800 mb-6"> Search & Filter</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <div>
@@ -313,7 +1150,7 @@ export default function Services() {
                 name="keyword" 
                 value={filters.keyword} 
                 onChange={onChange} 
-                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none" 
+                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all outline-none" 
                 placeholder="Search by name or description" 
               />
             </div>
@@ -323,7 +1160,7 @@ export default function Services() {
                 name="category" 
                 value={filters.category} 
                 onChange={onChange} 
-                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none"
+                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all outline-none"
               >
                 <option value="">All Categories</option>
                 {categories.map((c) => (
@@ -337,7 +1174,7 @@ export default function Services() {
                 name="location" 
                 value={filters.location} 
                 onChange={onChange} 
-                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none"
+                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all outline-none"
               >
                 <option value="">All Locations</option>
                 {locations.map((l) => (
@@ -349,26 +1186,26 @@ export default function Services() {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Min Price ($)</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Min Price (₹)</label>
               <input 
                 name="minPrice" 
                 type="number" 
                 step="0.01" 
                 value={filters.minPrice} 
                 onChange={onChange} 
-                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none"
+                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all outline-none"
                 placeholder="0.00"
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Max Price ($)</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Max Price (₹)</label>
               <input 
                 name="maxPrice" 
                 type="number" 
                 step="0.01" 
                 value={filters.maxPrice} 
                 onChange={onChange} 
-                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none"
+                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all outline-none"
                 placeholder="1000.00"
               />
             </div>
@@ -378,7 +1215,7 @@ export default function Services() {
                 name="sortBy" 
                 value={filters.sortBy} 
                 onChange={onChange} 
-                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none"
+                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all outline-none"
               >
                 <option value="">Default</option>
                 <option value="price_asc">Price: Low to High</option>
@@ -397,21 +1234,22 @@ export default function Services() {
               Clear Filters
             </button>
             <button 
-              type="submit" 
-              className="px-8 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold shadow-lg hover:shadow-xl hover:from-blue-700 hover:to-cyan-700 transition-all"
+              type="button"
+              onClick={onSearch} 
+              className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white font-semibold shadow-lg hover:shadow-xl hover:from-purple-700 hover:to-fuchsia-700 transition-all"
             >
-              🔍 Search
+               Search
             </button>
           </div>
-        </form>
+        </div>
 
         <div>
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-2xl font-bold text-gray-800">
-              {hasAnyFilter ? '🎯 Search Results' : '📋 All Services'}
+              {hasAnyFilter ? ' Search Results' : '📋 All Services'}
             </h2>
             {list.length > 0 && (
-              <span className="text-sm text-gray-600 bg-gray-100 px-4 py-2 rounded-full font-medium">
+              <span className="text-sm text-gray-600 bg-white px-4 py-2 rounded-full font-medium shadow-sm border border-gray-200">
                 {list.length} {list.length === 1 ? 'service' : 'services'} found
               </span>
             )}
@@ -419,7 +1257,7 @@ export default function Services() {
           
           {loading ? (
             <div className="text-center py-12">
-              <div className="inline-block w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+              <div className="inline-block w-8 h-8 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
               <p className="mt-4 text-gray-600">Loading services...</p>
             </div>
           ) : error ? (
@@ -428,25 +1266,61 @@ export default function Services() {
             </div>
           ) : list.length === 0 ? (
             <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-gray-300">
-              <div className="text-5xl mb-4">🔍</div>
+              <div className="text-5xl mb-4"></div>
               <p className="text-gray-600 text-lg mb-2">No services found</p>
               <p className="text-gray-500 text-sm">Try adjusting your search filters</p>
             </div>
           ) : (
             <div className="space-y-4">
               {list.map((l) => (
-                <ListingCard
-                  key={l.id}
-                  listing={l}
-                  action={
+                <div key={l.id} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
+                  <div className="flex items-start justify-between gap-6">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-3">
+                        <h3 className="text-xl font-bold text-gray-800">
+                          {l.serviceName}
+                        </h3>
+                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-700 border border-emerald-200">
+                          Available
+                        </span>
+                      </div>
+                      
+                      {l.description && (
+                        <p className="text-gray-600 mb-3">{l.description}</p>
+                      )}
+                      
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold"> Price:</span>
+                          <span className="text-lg font-bold text-purple-500">₹{l.price}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold"> Category:</span>
+                          <span className="text-purple-700 text-md font-medium">{l.category}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold"> Location:</span>
+                          <span>{l.location}</span>
+                        </div>
+                      </div>
+                      
+                      {l.imageUrl && (
+                        <div className="mt-3">
+                          <img src={l.imageUrl} alt={l.serviceName} className="h-32 w-auto rounded-lg object-cover" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 pt-4 border-t border-gray-100">
                     <button 
-                      className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold shadow-lg hover:shadow-xl hover:from-green-700 hover:to-emerald-700 transition-all" 
+                      className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white font-semibold shadow-lg hover:shadow-xl hover:from-purple-700 hover:to-fuchsia-700 transition-all" 
                       onClick={() => onBook(l)}
                     >
-                      📅 Book Now
+                      Book Now
                     </button>
-                  }
-                />
+                  </div>
+                </div>
               ))}
             </div>
           )}
