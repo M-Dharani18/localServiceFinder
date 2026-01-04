@@ -1,273 +1,560 @@
-import { useState } from 'react'
-import { useAuth } from '@/context/AuthContext'
-import { User, Mail, Phone, MapPin, Calendar, Camera, Save, Edit2 } from 'lucide-react'
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { 
+  User, 
+  Mail, 
+  Phone, 
+  MapPin, 
+  Star, 
+  MessageSquare, 
+  Calendar,
+  Award,
+  TrendingUp,
+  BarChart3,
+  CheckCircle,
+  Edit,
+  Save,
+  X,
+  BookOpen,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Percent
+} from 'lucide-react';
+import reviewAPI from '@/api/reviews';
+import { getCustomerBookingsApi } from '@/api/bookings';
+import { toast } from 'react-toastify';
 
-export default function CustomerProfile() {
-  const { user } = useAuth()
-  const [isEditing, setIsEditing] = useState(false)
-  const [formData, setFormData] = useState({
-    name: user?.name || '',
-    email: user?.email || '',
-    phone: user?.phone || '+1 (555) 123-4567',
-    address: user?.address || '123 Main St, New York, NY 10001',
-    bio: user?.bio || 'I love finding reliable local services for my home maintenance needs.',
-    preferences: user?.preferences || {
-      notifications: true,
-      emailUpdates: true,
-      smsAlerts: false
+const CustomerProfile = () => {
+  const { user, updateProfile } = useAuth();
+  const navigate = useNavigate();
+  const [reviews, setReviews] = useState([]);
+  const [reviewStats, setReviewStats] = useState({
+    totalReviews: 0,
+    averageRating: 0,
+    ratingDistribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
+    recentReviews: []
+  });
+  const [bookingsStats, setBookingsStats] = useState({
+    total: 0,
+    completed: 0,
+    upcoming: 0,
+    cancelled: 0,
+    pending: 0
+  });
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [profileData, setProfileData] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    address: '',
+    bio: ''
+  });
+
+  useEffect(() => {
+    if (user) {
+      loadProfileData();
+      loadReviews();
+      loadBookingsStats();
     }
-  })
+  }, [user]);
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    setIsEditing(false)
-    // Here you would update the user profile in your backend
-    console.log('Updated profile:', formData)
-  }
+  const loadProfileData = () => {
+    setProfileData({
+      fullName: user.fullName || user.username || '',
+      email: user.email || '',
+      phone: user.phone || '',
+      address: user.address || '',
+      bio: user.bio || 'Tell us about yourself...'
+    });
+  };
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target
-    if (type === 'checkbox') {
-      setFormData(prev => ({
-        ...prev,
-        preferences: {
-          ...prev.preferences,
-          [name]: checked
+  const loadReviews = async () => {
+  try {
+    // CORRECTED: Use reviewAPI.getCustomerReviews instead of getCustomerReviews
+    const customerReviews = await reviewAPI.getCustomerReviews(user.id);
+    setReviews(customerReviews || []);
+    
+    if (customerReviews && customerReviews.length > 0) {
+      const totalReviews = customerReviews.length;
+      const totalRating = customerReviews.reduce((sum, review) => sum + review.rating, 0);
+      const averageRating = totalRating / totalReviews;
+      
+      const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+      customerReviews.forEach(review => {
+        const rating = Math.round(review.rating);
+        if (distribution[rating] !== undefined) {
+          distribution[rating]++;
         }
-      }))
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }))
+      });
+
+      const recentReviews = [...customerReviews]
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 3);
+
+      setReviewStats({
+        totalReviews,
+        averageRating,
+        ratingDistribution: distribution,
+        recentReviews
+      });
     }
+  } catch (error) {
+    console.error('Failed to load reviews:', error);
+    toast.error('Failed to load review statistics');
+  }
+};
+
+  const loadBookingsStats = async () => {
+    try {
+      const bookings = await getCustomerBookingsApi(user.id);
+      const total = bookings.length || 0;
+      const completed = bookings.filter(b => b.status === 'COMPLETED').length;
+      const upcoming = bookings.filter(b => 
+        b.status === 'CONFIRMED' && new Date(b.bookingDateTime) > new Date()
+      ).length;
+      const cancelled = bookings.filter(b => b.status === 'CANCELLED').length;
+      const pending = bookings.filter(b => b.status === 'PENDING').length;
+
+      setBookingsStats({ total, completed, upcoming, cancelled, pending });
+    } catch (error) {
+      console.error('Failed to load booking stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setProfileData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      await updateProfile(profileData);
+      toast.success('Profile updated successfully!');
+      setEditing(false);
+    } catch (error) {
+      toast.error('Failed to update profile');
+    }
+  };
+
+  const renderStars = (rating, size = 16) => {
+    return (
+      <div className="flex gap-0.5">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            size={size}
+            className={
+              star <= Math.round(rating)
+                ? 'fill-yellow-400 text-yellow-400'
+                : 'text-gray-300'
+            }
+          />
+        ))}
+      </div>
+    );
+  };
+
+  const getRatingPercentage = (rating) => {
+    const total = reviewStats.totalReviews;
+    if (total === 0) return 0;
+    return Math.round((reviewStats.ratingDistribution[rating] / total) * 100);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-fuchsia-50 pt-16">
+        <div className="flex items-center justify-center h-64">
+          <div className="w-8 h-8 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
-        <p className="text-gray-600">Manage your personal information and preferences</p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column - Profile Card */}
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-            <div className="relative mb-6">
-              <div className="w-32 h-32 mx-auto rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 flex items-center justify-center text-white text-4xl font-bold">
-                {formData.name?.charAt(0) || 'C'}
-              </div>
-              {isEditing && (
-                <button className="absolute bottom-2 right-1/2 transform translate-x-1/2 p-2 bg-white rounded-full shadow-md hover:bg-gray-50">
-                  <Camera className="w-5 h-5 text-gray-700" />
-                </button>
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-fuchsia-50 pt-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Header - Compact */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800">
+                My Profile
+              </h1>
+              <p className="text-sm text-gray-600 mt-1">Manage your account and review your activity</p>
+            </div>
+            <button
+              onClick={() => setEditing(!editing)}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white font-medium rounded-lg hover:shadow-lg transition-all"
+            >
+              {editing ? (
+                <>
+                  <X size={16} />
+                  Cancel
+                </>
+              ) : (
+                <>
+                  <Edit size={16} />
+                  Edit Profile
+                </>
               )}
-            </div>
-            
-            <div className="text-center mb-6">
-              <h2 className="text-xl font-bold text-gray-900">{formData.name}</h2>
-              <p className="text-gray-600">{formData.email}</p>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 text-gray-700">
-                <Phone className="w-5 h-5 text-gray-400" />
-                <span>{formData.phone}</span>
-              </div>
-              <div className="flex items-center gap-3 text-gray-700">
-                <MapPin className="w-5 h-5 text-gray-400" />
-                <span className="truncate">{formData.address}</span>
-              </div>
-              <div className="flex items-center gap-3 text-gray-700">
-                <Calendar className="w-5 h-5 text-gray-400" />
-                <span>Member since {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Jan 2024'}</span>
-              </div>
-            </div>
-
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <div className="text-sm text-gray-600 mb-2">Account Status</div>
-              <div className="flex items-center justify-between">
-                <span className="font-medium">Verified</span>
-                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
-                  Active
-                </span>
-              </div>
-            </div>
+            </button>
           </div>
         </div>
 
-        {/* Right Column - Edit Form */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-gray-900">Personal Information</h3>
-              <button
-                onClick={() => setIsEditing(!isEditing)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium"
-              >
-                {isEditing ? 'Cancel' : 'Edit Profile'}
-                <Edit2 className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit}>
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Full Name
-                    </label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      disabled={!isEditing}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 disabled:bg-gray-50 disabled:text-gray-500"
-                    />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Profile Card */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Profile Information Card */}
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100">
+              <div className="p-6">
+                <div className="flex items-start gap-4 mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-fuchsia-500 rounded-full flex items-center justify-center text-white text-xl font-bold">
+                    {user?.fullName?.charAt(0) || user?.username?.charAt(0) || 'U'}
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Email Address
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      disabled={!isEditing}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 disabled:bg-gray-50 disabled:text-gray-500"
-                    />
+                  <div className="flex-1">
+                    {editing ? (
+                      <input
+                        type="text"
+                        name="fullName"
+                        value={profileData.fullName}
+                        onChange={handleInputChange}
+                        className="text-xl font-bold text-gray-800 border-b-2 border-purple-300 focus:outline-none focus:border-purple-500 w-full mb-2"
+                        placeholder="Your name"
+                      />
+                    ) : (
+                      <h2 className="text-xl font-bold text-gray-800 mb-2">{profileData.fullName}</h2>
+                    )}
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Mail size={14} />
+                      {editing ? (
+                        <input
+                          type="email"
+                          name="email"
+                          value={profileData.email}
+                          onChange={handleInputChange}
+                          className="border-b-2 border-purple-300 focus:outline-none focus:border-purple-500 flex-1"
+                        />
+                      ) : (
+                        <span className="text-sm">{profileData.email}</span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Phone Number
+                {/* Contact Info Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-gray-500 flex items-center gap-2">
+                      <Phone size={12} />
+                      Phone
                     </label>
-                    <input
-                      type="tel"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      disabled={!isEditing}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 disabled:bg-gray-50 disabled:text-gray-500"
-                    />
+                    {editing ? (
+                      <input
+                        type="text"
+                        name="phone"
+                        value={profileData.phone}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        placeholder="Enter phone number"
+                      />
+                    ) : (
+                      <p className="text-sm text-gray-800">{profileData.phone || 'Not provided'}</p>
+                    )}
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-gray-500 flex items-center gap-2">
+                      <MapPin size={12} />
                       Address
                     </label>
-                    <input
-                      type="text"
-                      name="address"
-                      value={formData.address}
-                      onChange={handleChange}
-                      disabled={!isEditing}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 disabled:bg-gray-50 disabled:text-gray-500"
+                    {editing ? (
+                      <input
+                        type="text"
+                        name="address"
+                        value={profileData.address}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        placeholder="Enter address"
+                      />
+                    ) : (
+                      <p className="text-sm text-gray-800">{profileData.address || 'Not provided'}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Bio Section */}
+                <div className="mb-4">
+                  <label className="text-xs font-medium text-gray-500 mb-2 block">About Me</label>
+                  {editing ? (
+                    <textarea
+                      name="bio"
+                      value={profileData.bio}
+                      onChange={handleInputChange}
+                      rows="3"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      placeholder="Tell us about yourself..."
                     />
-                  </div>
+                  ) : (
+                    <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg">{profileData.bio}</p>
+                  )}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Bio
-                  </label>
-                  <textarea
-                    name="bio"
-                    value={formData.bio}
-                    onChange={handleChange}
-                    disabled={!isEditing}
-                    rows="3"
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 disabled:bg-gray-50 disabled:text-gray-500"
-                  />
+                {/* Member Since */}
+                <div className="flex items-center gap-2 text-xs text-gray-500 pt-4 border-t border-gray-100">
+                  <Calendar size={12} />
+                  <span>Member since {user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    year: 'numeric' 
+                  }) : 'Recently'}</span>
                 </div>
 
-                {/* Preferences */}
-                <div className="pt-6 border-t border-gray-200">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Preferences</h4>
-                  <div className="space-y-4">
-                    {[
-                      { id: 'notifications', label: 'Push Notifications', description: 'Receive notifications about bookings and updates' },
-                      { id: 'emailUpdates', label: 'Email Updates', description: 'Get weekly service recommendations and updates' },
-                      { id: 'smsAlerts', label: 'SMS Alerts', description: 'Receive text alerts for booking confirmations' }
-                    ].map((pref) => (
-                      <div key={pref.id} className="flex items-start gap-3">
-                        <input
-                          type="checkbox"
-                          id={pref.id}
-                          name={pref.id}
-                          checked={formData.preferences[pref.id]}
-                          onChange={handleChange}
-                          disabled={!isEditing}
-                          className="mt-1 rounded border-gray-300 text-cyan-600 focus:ring-cyan-500"
-                        />
-                        <div>
-                          <label htmlFor={pref.id} className="font-medium text-gray-900">
-                            {pref.label}
-                          </label>
-                          <p className="text-sm text-gray-600">{pref.description}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {isEditing && (
-                  <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
+                {editing && (
+                  <div className="mt-6 pt-4 border-t border-gray-100">
                     <button
-                      type="button"
-                      onClick={() => setIsEditing(false)}
-                      className="px-6 py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium"
+                      onClick={handleSaveProfile}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white font-medium rounded-lg hover:shadow-lg transition-all"
                     >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-6 py-3 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:opacity-90 font-medium"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Save className="w-5 h-5" />
-                        Save Changes
-                      </div>
+                      <Save size={16} />
+                      Save Changes
                     </button>
                   </div>
                 )}
               </div>
-            </form>
+            </div>
+
+            {/* Recent Reviews Card */}
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                    <MessageSquare size={18} className="text-purple-600" />
+                    Recent Reviews
+                  </h3>
+                  {reviewStats.recentReviews.length > 0 && (
+                    <button
+                      onClick={() => navigate('/customer/bookings')}
+                      className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                    >
+                      View All →
+                    </button>
+                  )}
+                </div>
+
+                {reviewStats.recentReviews.length === 0 ? (
+                  <div className="text-center py-8">
+                    <MessageSquare size={32} className="mx-auto text-gray-300 mb-3" />
+                    <p className="text-gray-500 text-sm">No reviews yet</p>
+                    <p className="text-xs text-gray-400 mt-1">Complete a booking to leave your first review</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {reviewStats.recentReviews.map((review) => (
+                      <div key={review.id} className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-2 mb-2">
+                            {renderStars(review.rating)}
+                            <span className="text-sm font-semibold text-gray-800">
+                              {review.rating.toFixed(1)}/5
+                            </span>
+                          </div>
+                          <span className="text-xs text-gray-500">
+                            {new Date(review.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                        {review.comment && (
+                          <p className="text-sm text-gray-700 mt-2">{review.comment}</p>
+                        )}
+                        <div className="mt-3 pt-3 border-t border-gray-100">
+                          <p className="text-xs text-gray-600">
+                            Service: <span className="font-medium">{review.serviceName}</span>
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* Security Section */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mt-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-6">Security</h3>
-            <div className="space-y-4">
-              <button className="w-full flex items-center justify-between p-4 rounded-lg border border-gray-200 hover:bg-gray-50">
-                <div className="text-left">
-                  <div className="font-medium text-gray-900">Change Password</div>
-                  <div className="text-sm text-gray-600">Update your password regularly</div>
+          {/* Right Column - Stats */}
+          <div className="space-y-6">
+            {/* Review Statistics Card */}
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100">
+              <div className="p-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <Award size={18} className="text-purple-600" />
+                  Review Stats
+                </h3>
+
+                {/* Average Rating */}
+                <div className="text-center mb-6">
+                  <div className="flex items-baseline justify-center gap-1 mb-2">
+                    <span className="text-3xl font-bold text-gray-800">
+                      {reviewStats.averageRating.toFixed(1)}
+                    </span>
+                    <span className="text-lg text-gray-500">/5</span>
+                  </div>
+                  <div className="flex justify-center mb-2">
+                    {renderStars(reviewStats.averageRating, 20)}
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    {reviewStats.totalReviews} {reviewStats.totalReviews === 1 ? 'review' : 'reviews'}
+                  </p>
                 </div>
-                <ChevronRight className="w-5 h-5 text-gray-400" />
-              </button>
-              <button className="w-full flex items-center justify-between p-4 rounded-lg border border-gray-200 hover:bg-gray-50">
-                <div className="text-left">
-                  <div className="font-medium text-gray-900">Two-Factor Authentication</div>
-                  <div className="text-sm text-gray-600">Add an extra layer of security</div>
+
+                {/* Rating Distribution */}
+                <div className="space-y-2 mb-6">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Rating Breakdown</h4>
+                  {[5, 4, 3, 2, 1].map((rating) => {
+                    const percentage = getRatingPercentage(rating);
+                    return (
+                      <div key={rating} className="flex items-center gap-3">
+                        <div className="flex items-center gap-1 w-10">
+                          <span className="text-sm font-medium text-gray-700">{rating}</span>
+                          <Star size={12} className="fill-yellow-400 text-yellow-400" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full"
+                              style={{ width: `${percentage}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                        <span className="text-xs text-gray-600 w-12 text-right">
+                          {percentage}%
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
-                <ChevronRight className="w-5 h-5 text-gray-400" />
-              </button>
-              <button className="w-full flex items-center justify-between p-4 rounded-lg border border-gray-200 hover:bg-gray-50 text-red-600">
-                <div className="text-left">
-                  <div className="font-medium">Delete Account</div>
-                  <div className="text-sm">Permanently remove your account</div>
+
+                {/* Satisfaction Rate */}
+                <div className="bg-gradient-to-r from-emerald-50 to-green-50 p-3 rounded-lg border border-emerald-100">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle size={16} className="text-emerald-600" />
+                      <span className="text-sm font-medium text-gray-700">Satisfaction</span>
+                    </div>
+                    <span className="text-xl font-bold text-emerald-700">
+                      {reviewStats.totalReviews > 0 
+                        ? `${Math.round((reviewStats.ratingDistribution[5] + reviewStats.ratingDistribution[4]) / reviewStats.totalReviews * 100)}%`
+                        : '0%'
+                      }
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    4-5 star ratings
+                  </p>
                 </div>
-                <ChevronRight className="w-5 h-5" />
-              </button>
+              </div>
+            </div>
+
+            {/* Booking Statistics Card */}
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100">
+              <div className="p-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <TrendingUp size={18} className="text-purple-600" />
+                  Booking Stats
+                </h3>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <div className="flex items-center gap-2 mb-1">
+                      <BookOpen size={14} className="text-gray-600" />
+                      <span className="text-xs font-medium text-gray-600">Total</span>
+                    </div>
+                    <p className="text-xl font-bold text-gray-800">{bookingsStats.total}</p>
+                  </div>
+                  
+                  <div className="bg-emerald-50 p-3 rounded-lg">
+                    <div className="flex items-center gap-2 mb-1">
+                      <CheckCircle2 size={14} className="text-emerald-600" />
+                      <span className="text-xs font-medium text-emerald-700">Completed</span>
+                    </div>
+                    <p className="text-xl font-bold text-emerald-800">{bookingsStats.completed}</p>
+                  </div>
+                  
+                  <div className="bg-blue-50 p-3 rounded-lg">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Clock size={14} className="text-blue-600" />
+                      <span className="text-xs font-medium text-blue-700">Upcoming</span>
+                    </div>
+                    <p className="text-xl font-bold text-blue-800">{bookingsStats.upcoming}</p>
+                  </div>
+                  
+                  <div className="bg-amber-50 p-3 rounded-lg">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Clock size={14} className="text-amber-600" />
+                      <span className="text-xs font-medium text-amber-700">Pending</span>
+                    </div>
+                    <p className="text-xl font-bold text-amber-800">{bookingsStats.pending}</p>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Cancelled</span>
+                    <span className="text-lg font-bold text-rose-700">{bookingsStats.cancelled}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Contribution Card */}
+            <div className="bg-gradient-to-br from-purple-600 to-fuchsia-600 rounded-xl shadow-lg p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Your Contribution</h3>
+              
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare size={14} className="text-purple-200" />
+                    <span className="text-purple-100">Reviews Written</span>
+                  </div>
+                  <span className="text-lg font-bold text-white">{reviewStats.totalReviews}</span>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Star size={14} className="text-purple-200" />
+                    <span className="text-purple-100">Services Rated</span>
+                  </div>
+                  <span className="text-lg font-bold text-white">
+                    {[...new Set(reviews.map(r => r.listingId))].length}
+                  </span>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle size={14} className="text-purple-200" />
+                    <span className="text-purple-100">Helpful Reviews</span>
+                  </div>
+                  <span className="text-lg font-bold text-white">
+                    {reviewStats.ratingDistribution[5] + reviewStats.ratingDistribution[4]}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="mt-6 pt-4 border-t border-purple-500/30">
+                <p className="text-xs text-purple-200 text-center">
+                  Thanks for helping our community! ✨
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
+
+export default CustomerProfile;

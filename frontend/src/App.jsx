@@ -82,6 +82,12 @@ import ProviderTimeSlots from '@/pages/ProviderTimeSlots'
 import CustomerLayout from '@/pages/CustomerLayout'
 import LandingPage from '@/pages/LandingPage'
 import ProviderLayout from '@/pages/ProviderLayout' // Add this import
+import CustomerReviews from './pages/CustomerReviews'
+import ProviderReviews from './pages/ProviderReviews'
+
+
+import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 
 function HomeRedirect() {
   const { role } = useAuth()
@@ -92,6 +98,20 @@ function HomeRedirect() {
 
 export default function App() {
   return (
+    <>
+      {/* Add ToastContainer here - it should be at the root level */}
+      <ToastContainer 
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
@@ -107,6 +127,7 @@ export default function App() {
             <Route path="/customer/services/:id/book" element={<BookService />} />
             <Route path="/customer/profile" element={<CustomerProfile />} />
             <Route path="/customer/notifications" element={<Notifications />} />
+            <Route path="/customer/reviews" element={<CustomerReviews />} />
           </Route>
         </Route>
         
@@ -118,11 +139,13 @@ export default function App() {
             <Route path="/provider/timeslots" element={<ProviderTimeSlots />} />
             <Route path="/provider/bookings" element={<ProviderBookings />} />
             <Route path="/provider/profile" element={<ProviderProfileSetup />} /> {/* Use ProviderProfileSetup for profile */}
+            <Route path="/provider/reviews" element={<ProviderReviews />} />
           </Route>
         </Route>
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   )
 }
