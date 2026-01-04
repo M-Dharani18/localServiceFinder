@@ -11,7 +11,7 @@ public class ListingRequest {
     private String location;
     private String category;
     private String imageUrl;
-    private Boolean isAvailable; // Provider can set availability
+    private Boolean isAvailable; 
     private Double latitude;
     private Double longitude;
 }

@@ -1,0 +1,25 @@
+package com.quickserve.backend.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ReviewResponse {
+    
+    private Long id;
+    private Long bookingId;
+    private Long customerId;
+    private String customerName;
+    private Long providerId;
+    private String providerName;
+    private Long listingId;
+    private String serviceName;
+    private Integer rating;
+    private String comment;
+    private LocalDateTime createdAt;
+}
