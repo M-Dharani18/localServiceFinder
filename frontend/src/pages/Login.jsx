@@ -370,6 +370,7 @@ export default function Login() {
         const u = raw ? JSON.parse(raw) : null
         if (u?.role === 'PROVIDER') return navigate('/provider', { replace: true })
         if (u?.role === 'CUSTOMER') return navigate('/customer/services', { replace: true }) // CHANGED HERE
+        if (u?.role === 'ADMIN') return navigate('/admin/dashboard', { replace: true }) // CHANGED HERE
       } catch {}
       navigate('/', { replace: true })
     } catch (err) {

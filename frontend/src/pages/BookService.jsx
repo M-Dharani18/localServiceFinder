@@ -1674,10 +1674,7 @@ export default function BookService() {
     setError('')
     try {
       let data = await getAvailableSlotsByListingApi(id)
-      if ((!data || data.length === 0) && providerFromState) {
-        const provData = await getAvailableSlotsByProviderApi(providerFromState)
-        data = provData || []
-      }
+
       setSlots(data || [])
       if (!selectedDate && data && data.length) {
         const first = data[0]
@@ -1694,17 +1691,18 @@ export default function BookService() {
   useEffect(() => { load() }, [id, providerFromState])
   
   useEffect(() => {
-    const t = setInterval(() => {
-      Promise.all([
-        getAvailableSlotsByListingApi(id).catch(() => []),
-        providerFromState ? getAvailableSlotsByProviderApi(providerFromState).catch(() => []) : Promise.resolve([]),
-      ]).then(([byListing, byProvider]) => {
-        const chosen = (byListing && byListing.length > 0) ? byListing : byProvider
-        if (Array.isArray(chosen)) setSlots(chosen)
-      }).catch(() => {})
-    }, 20000)
-    return () => clearInterval(t)
-  }, [id, providerFromState])
+  const t = setInterval(() => {
+    // Only poll for THIS listing's slots, not all provider slots
+    getAvailableSlotsByListingApi(id)
+      .then(data => {
+        if (Array.isArray(data)) {
+          setSlots(data)
+        }
+      })
+      .catch(() => {})
+  }, 20000)
+  return () => clearInterval(t)
+}, [id]) 
 
   const onBook = async (slot) => {
     setBooking(true)

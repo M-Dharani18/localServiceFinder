@@ -130,6 +130,7 @@ import {
 const ROLES = [
   { label: 'Customer', value: 'CUSTOMER', icon: <Home className="w-5 h-5" /> },
   { label: 'Service Provider', value: 'PROVIDER', icon: <Briefcase className="w-5 h-5" /> },
+   { label: 'Administrator', value: 'ADMIN', icon: <Shield className="w-5 h-5" /> },
 ]
 
 export default function Register() {

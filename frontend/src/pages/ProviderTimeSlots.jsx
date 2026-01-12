@@ -646,7 +646,7 @@ export default function ProviderTimeSlots() {
                     </div>
                     <div className="flex items-center gap-2">
                       <button 
-                        className={`px-4 py-2 rounded-xl font-semibold transition-all ${
+                        className={`min-w-[170px] px-4 py-2 rounded-xl font-semibold transition-all ${
                           s.isAvailable
                             ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white hover:from-yellow-600 hover:to-orange-600'
                             : 'bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600'

@@ -573,15 +573,7 @@ export default function ProviderListings() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const onDelete = async (id) => {
-    if (!confirm('Delete this listing?')) return
-    try {
-      await deleteListingApi(id)
-      await load()
-    } catch (e) {
-      alert(e?.response?.data?.message || 'Delete failed')
-    }
-  }
+  
 
   const onToggle = async (l) => {
     try {
@@ -760,31 +752,24 @@ export default function ProviderListings() {
                       )}
                     </div>
                   </div>
-                  
-                  <div className="mt-4 pt-4 border-t border-gray-100 flex gap-3">
-                    <button 
-                      onClick={() => onToggle(l)} 
-                      className={`px-6 py-2.5 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all ${
-                        l.isAvailable 
-                          ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-white hover:from-yellow-600 hover:to-amber-600' 
-                          : 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600'
-                      }`}
-                    >
-                      {l.isAvailable ? 'Mark Unavailable' : 'Mark Available'}
-                    </button>
-                    <button 
-                      onClick={() => onEdit(l)} 
-                      className="px-6 py-2.5 rounded-xl border-2 border-emerald-500 text-emerald-600 font-semibold hover:bg-emerald-50 transition-all"
-                    >
-                      Edit
-                    </button>
-                    <button 
-                      onClick={() => onDelete(l.id)} 
-                      className="px-6 py-2.5 rounded-xl border-2 border-red-500 text-red-600 font-semibold hover:bg-red-50 transition-all"
-                    >
-                      Delete
-                    </button>
-                  </div>
+                 <div className="mt-4 pt-4 border-t border-gray-100 flex gap-3">
+  <button 
+    onClick={() => onToggle(l)} 
+    className={`min-w-[180px] px-6 py-2.5 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all ${
+      l.isAvailable 
+        ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-white hover:from-yellow-600 hover:to-amber-600' 
+        : 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600'
+    }`}
+  >
+    {l.isAvailable ? 'Mark Unavailable' : 'Mark Available'}
+  </button>
+  <button 
+    onClick={() => onEdit(l)} 
+    className="min-w-[180px] px-6 py-2.5 rounded-xl border-2 border-emerald-500 text-emerald-600 font-semibold hover:bg-emerald-50 transition-all"
+  >
+    Edit
+  </button>
+</div>
                 </div>
               ))}
             </div>
