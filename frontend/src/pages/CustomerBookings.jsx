@@ -979,15 +979,521 @@
 // }
 
 
+// import { useEffect, useState } from 'react'
+// import { getCustomerBookingsApi } from '@/api/bookings'
+// import { useAuth } from '@/context/AuthContext'
+// import { format, parseISO, isBefore, isToday, isAfter } from 'date-fns'
+// import { Link } from 'react-router-dom'
+// import reviewAPI from '@/api/reviews'
+// import { toast } from 'react-toastify'
+// import ReviewModal from '@/components/ReviewModal'
+// import { Star, MessageSquare } from 'lucide-react'
+
+// export default function CustomerBookings() {
+//   const { user } = useAuth()
+//   const customerId = user?.id
+//   const [items, setItems] = useState([])
+//   const [loading, setLoading] = useState(true)
+//   const [error, setError] = useState('')
+//   const [activeFilter, setActiveFilter] = useState('ALL')
+//   const [showReviewModal, setShowReviewModal] = useState(false)
+//   const [selectedBooking, setSelectedBooking] = useState(null)
+//   const [bookingReviews, setBookingReviews] = useState({})
+
+//   const load = async () => {
+//     if (!customerId) return
+//     setLoading(true)
+//     setError('')
+//     try {
+//       const data = await getCustomerBookingsApi(customerId)
+//       setItems(data || [])
+      
+//       // Fetch reviews for completed bookings
+//       if (data && data.length > 0) {
+//         const completedBookings = data.filter(b => b.status === 'COMPLETED')
+//         const reviewPromises = completedBookings.map(async (booking) => {
+//           try {
+//             const review = await reviewAPI.getReviewByBookingId(booking.id)
+//             return { bookingId: booking.id, review }
+//           } catch (error) {
+//             // If 404, no review exists - return null
+//             if (error.response?.status === 404) {
+//               return { bookingId: booking.id, review: null }
+//             }
+//             console.error(`Failed to fetch review for booking ${booking.id}:`, error)
+//             return { bookingId: booking.id, review: null }
+//           }
+//         })
+        
+//         const reviewResults = await Promise.all(reviewPromises)
+//         const reviewsMap = {}
+//         reviewResults.forEach(({ bookingId, review }) => {
+//           reviewsMap[bookingId] = review
+//         })
+//         setBookingReviews(reviewsMap)
+//       }
+//     } catch (e) {
+//       setError(e?.response?.data?.message || 'Failed to load bookings')
+//     } finally {
+//       setLoading(false)
+//     }
+//   }
+
+//   useEffect(() => { 
+//     load() 
+//   }, [customerId])
+
+//   const getStatusColor = (status, bookingDate) => {
+//     const now = new Date()
+//     const bookingDateTime = parseISO(bookingDate)
+    
+//     // Override status color for past bookings that aren't completed
+//     if (status !== 'COMPLETED' && status !== 'CANCELLED') {
+//       if (isBefore(bookingDateTime, now)) {
+//         return {
+//           bg: 'bg-gradient-to-r from-slate-100 to-slate-200',
+//           text: 'text-slate-700',
+//           border: 'border-slate-300',
+//           label: 'EXPIRED'
+//         }
+//       }
+//       if (isToday(bookingDateTime)) {
+//         return {
+//           bg: 'bg-gradient-to-r from-purple-100 to-fuchsia-100',
+//           text: 'text-purple-700',
+//           border: 'border-purple-300',
+//           label: 'TODAY'
+//         }
+//       }
+//     }
+
+//     switch(status) {
+//       case 'PENDING':
+//         return {
+//           bg: 'bg-gradient-to-r from-amber-100 to-orange-100',
+//           text: 'text-amber-800',
+//           border: 'border-amber-300',
+//           label: 'PENDING'
+//         }
+//       case 'CONFIRMED':
+//         return {
+//           bg: 'bg-gradient-to-r from-purple-100 to-fuchsia-100',
+//           text: 'text-purple-800',
+//           border: 'border-purple-300',
+//           label: 'CONFIRMED'
+//         }
+//       case 'COMPLETED':
+//         return {
+//           bg: 'bg-gradient-to-r from-emerald-100 to-green-100',
+//           text: 'text-emerald-800',
+//           border: 'border-emerald-300',
+//           label: 'COMPLETED'
+//         }
+//       case 'CANCELLED':
+//         return {
+//           bg: 'bg-gradient-to-r from-rose-100 to-red-100',
+//           text: 'text-rose-800',
+//           border: 'border-rose-300',
+//           label: 'CANCELLED'
+//         }
+//       default:
+//         return {
+//           bg: 'bg-gradient-to-r from-slate-100 to-slate-200',
+//           text: 'text-slate-700',
+//           border: 'border-slate-300',
+//           label: status || 'UNKNOWN'
+//         }
+//     }
+//   }
+
+//   const filterItems = (filter) => {
+//     if (filter === 'ALL') return items
+//     if (filter === 'UPCOMING') {
+//       return items.filter(item => 
+//         item.status !== 'COMPLETED' && 
+//         item.status !== 'CANCELLED' &&
+//         isAfter(parseISO(item.bookingDateTime), new Date())
+//       )
+//     }
+//     if (filter === 'PAST') {
+//       return items.filter(item => 
+//         item.status === 'COMPLETED' || 
+//         isBefore(parseISO(item.bookingDateTime), new Date())
+//       )
+//     }
+//     return items.filter(item => item.status === filter)
+//   }
+
+//   const handleLeaveReview = (booking) => {
+//     setSelectedBooking(booking)
+//     setShowReviewModal(true)
+//   }
+
+//   const handleReviewSubmitted = () => {
+//     toast.success('Review submitted successfully!')
+//     setShowReviewModal(false)
+//     load() // Refresh to show the new review
+//   }
+
+//   const renderStars = (rating) => {
+//     return (
+//       <div className="flex gap-0.5">
+//         {[1, 2, 3, 4, 5].map((star) => (
+//           <Star
+//             key={star}
+//             size={16}
+//             className={
+//               star <= Math.round(rating)
+//                 ? 'fill-yellow-400 text-yellow-400'
+//                 : 'text-gray-300'
+//             }
+//           />
+//         ))}
+//       </div>
+//     )
+//   }
+
+//   const filteredItems = filterItems(activeFilter)
+
+//   const stats = {
+//     total: items.length,
+//     upcoming: items.filter(item => 
+//       item.status !== 'COMPLETED' && 
+//       item.status !== 'CANCELLED' &&
+//       isAfter(parseISO(item.bookingDateTime), new Date())
+//     ).length,
+//     completed: items.filter(item => item.status === 'COMPLETED').length,
+//     pending: items.filter(item => item.status === 'PENDING').length,
+//   }
+
+//   return (
+//     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-fuchsia-50">
+//       <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
+//         {/* Header */}
+//         <div className="mb-8">
+//           <div className="flex items-center justify-between mb-6">
+//             <div>
+//               <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-fuchsia-600 bg-clip-text text-transparent tracking-tight">
+//                 My Bookings
+//               </h1>
+//               <p className="text-gray-600 mt-2">View and manage all your appointments</p>
+//             </div>
+//             <Link 
+//               to="/customer/services"
+//               className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white font-semibold rounded-xl hover:shadow-xl hover:from-purple-700 hover:to-fuchsia-700 transition-all duration-200 shadow-lg transform hover:scale-105 active:scale-95"
+//             >
+//               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+//                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+//               </svg>
+//               Book New Service
+//             </Link>
+//           </div>
+
+//           {/* Stats Cards */}
+//           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+//             <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm hover:shadow transition-all">
+//               <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+//               <div className="text-sm text-gray-600">Total Bookings</div>
+//             </div>
+//             <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm hover:shadow transition-all">
+//               <div className="text-2xl font-bold text-purple-600">{stats.upcoming}</div>
+//               <div className="text-sm text-gray-600">Upcoming</div>
+//             </div>
+//             <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm hover:shadow transition-all">
+//               <div className="text-2xl font-bold text-emerald-600">{stats.completed}</div>
+//               <div className="text-sm text-gray-600">Completed</div>
+//             </div>
+//             <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm hover:shadow transition-all">
+//               <div className="text-2xl font-bold text-amber-600">{stats.pending}</div>
+//               <div className="text-sm text-gray-600">Pending</div>
+//             </div>
+//           </div>
+
+//           {/* Filter Tabs */}
+//           <div className="flex flex-wrap gap-2 mb-6">
+//             {[
+//               { key: 'ALL', label: 'All Bookings' },
+//               { key: 'UPCOMING', label: 'Upcoming' },
+//               { key: 'PENDING', label: 'Pending' },
+//               { key: 'CONFIRMED', label: 'Confirmed' },
+//               { key: 'COMPLETED', label: 'Completed' },
+//               { key: 'CANCELLED', label: 'Cancelled' },
+//               { key: 'PAST', label: 'Past' },
+//             ].map((filter) => (
+//               <button
+//                 key={filter.key}
+//                 onClick={() => setActiveFilter(filter.key)}
+//                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+//                   activeFilter === filter.key
+//                     ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg'
+//                     : 'bg-white text-gray-700 border border-gray-200 hover:border-purple-400 hover:bg-gray-50'
+//                 }`}
+//               >
+//                 {filter.label}
+//               </button>
+//             ))}
+//           </div>
+//         </div>
+        
+//         {loading ? (
+//           <div className="flex flex-col items-center justify-center py-16">
+//             <div className="relative">
+//               <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
+//               <div className="absolute inset-0 flex items-center justify-center">
+//                 <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-fuchsia-500 rounded-full animate-pulse"></div>
+//               </div>
+//             </div>
+//             <div className="mt-6 text-center">
+//               <p className="text-gray-700 font-medium">Loading your bookings...</p>
+//               <p className="text-sm text-gray-500 mt-1">Fetching the latest information</p>
+//             </div>
+//           </div>
+//         ) : error ? (
+//           <div className="bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 rounded-xl p-6">
+//             <div className="flex items-start gap-3">
+//               <div className="p-2 bg-red-100 rounded-lg">
+//                 <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+//                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+//                 </svg>
+//               </div>
+//               <div>
+//                 <h3 className="font-semibold text-red-800">Unable to load bookings</h3>
+//                 <p className="text-red-600 mt-1">{error}</p>
+//                 <button
+//                   onClick={load}
+//                   className="mt-4 px-4 py-2 bg-gradient-to-r from-red-600 to-rose-600 text-white font-medium rounded-lg hover:from-red-700 hover:to-rose-700 transition-all duration-200"
+//                 >
+//                   Try Again
+//                 </button>
+//               </div>
+//             </div>
+//           </div>
+//         ) : filteredItems.length === 0 ? (
+//           <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-gray-300">
+//             <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-purple-100 to-fuchsia-100 rounded-full mb-6">
+//               <svg className="w-10 h-10 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+//                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+//               </svg>
+//             </div>
+//             <h3 className="text-xl font-bold text-gray-800 mb-2">
+//               {activeFilter === 'ALL' ? 'No bookings yet' : `No ${activeFilter.toLowerCase()} bookings`}
+//             </h3>
+//             <p className="text-gray-600 max-w-md mx-auto mb-6">
+//               {activeFilter === 'ALL' 
+//                 ? "You haven't made any bookings yet. Start by exploring available services."
+//                 : `You don't have any ${activeFilter.toLowerCase()} bookings at the moment.`
+//               }
+//             </p>
+//             {activeFilter !== 'ALL' && (
+//               <button
+//                 onClick={() => setActiveFilter('ALL')}
+//                 className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white font-semibold rounded-xl hover:shadow-xl hover:from-purple-700 hover:to-fuchsia-700 transition-all duration-200"
+//               >
+//                 View All Bookings
+//               </button>
+//             )}
+//           </div>
+//         ) : (
+//           <div className="grid grid-cols-1 gap-6">
+//             {filteredItems.map((booking) => {
+//               const statusInfo = getStatusColor(booking.status, booking.bookingDateTime)
+//               const bookingDate = parseISO(booking.bookingDateTime)
+//               const isPast = isBefore(bookingDate, new Date())
+//               const hasReview = bookingReviews[booking.id]
+              
+//               return (
+//                 <div 
+//                   key={booking.id} 
+//                   className="bg-white rounded-2xl border border-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden"
+//                 >
+//                   <div className="p-6">
+//                     <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+//                       <div className="flex-1">
+//                         {/* Service Info */}
+//                         <div className="flex items-start justify-between mb-4">
+//                           <div>
+//                             <h3 className="text-xl font-bold text-gray-800 mb-1">
+//                               {booking.serviceName || `Service #${booking.listingId}`}
+//                             </h3>
+//                             <div className="flex items-center gap-2 text-sm text-gray-600">
+//                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+//                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+//                               </svg>
+//                               <span>{booking.providerName || `Provider #${booking.providerId}`}</span>
+//                               {booking.providerEmail && (
+//                                 <>
+//                                   <span className="text-gray-400">•</span>
+//                                   <span className="text-gray-500">{booking.providerEmail}</span>
+//                                 </>
+//                               )}
+//                             </div>
+//                           </div>
+//                           <div className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${statusInfo.bg} ${statusInfo.text} ${statusInfo.border}`}>
+//                             {statusInfo.label}
+//                           </div>
+//                         </div>
+
+//                         {/* Booking Details */}
+//                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+//                           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+//                             <div className="p-2 bg-white rounded-lg border border-gray-200">
+//                               <svg className="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+//                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+//                               </svg>
+//                             </div>
+//                             <div>
+//                               <p className="text-xs text-gray-500 font-medium">Date & Time</p>
+//                               <p className="text-sm font-semibold text-gray-900">
+//                                 {format(bookingDate, 'EEEE, MMMM d, yyyy')}
+//                               </p>
+//                               <p className="text-sm text-gray-700">
+//                                 {format(bookingDate, 'h:mm a')}
+//                               </p>
+//                             </div>
+//                           </div>
+
+//                           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+//                             <div className="p-2 bg-white rounded-lg border border-gray-200">
+//                               <svg className="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+//                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+//                               </svg>
+//                             </div>
+//                             <div>
+//                               <p className="text-xs text-gray-500 font-medium">Duration</p>
+//                               <p className="text-sm font-semibold text-gray-900">1 hour</p>
+//                               <p className="text-sm text-gray-700">Standard appointment</p>
+//                             </div>
+//                           </div>
+//                         </div>
+
+//                         {/* Notes */}
+//                         {booking.notes && (
+//                           <div className="mb-4 p-3 bg-gradient-to-r from-purple-50/50 to-fuchsia-50/50 rounded-lg border border-purple-100">
+//                             <div className="flex items-start gap-2">
+//                               <div className="p-1.5 bg-purple-100 rounded">
+//                                 <svg className="w-3.5 h-3.5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+//                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+//                                 </svg>
+//                               </div>
+//                               <div className="flex-1">
+//                                 <p className="text-xs font-medium text-purple-700 mb-1">Your Notes</p>
+//                                 <p className="text-sm text-gray-700">{booking.notes}</p>
+//                               </div>
+//                             </div>
+//                           </div>
+//                         )}
+
+//                         {/* Review Section for Completed Bookings */}
+//                         {booking.status === 'COMPLETED' && (
+//                           <div className="mb-4">
+//                             {hasReview ? (
+//                               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200">
+//                                 <div className="flex items-center gap-2 mb-3">
+//                                   <MessageSquare size={16} className="text-blue-600" />
+//                                   <p className="text-sm font-semibold text-gray-800">Your Review</p>
+//                                 </div>
+//                                 <div className="flex items-center gap-3">
+//                                   {renderStars(hasReview.rating)}
+//                                   <span className="text-sm font-medium text-gray-700">
+//                                     {hasReview.rating?.toFixed(1)}/5
+//                                   </span>
+//                                 </div>
+//                                 {hasReview.comment && (
+//                                   <p className="text-sm text-gray-700 mt-2 bg-white p-3 rounded-lg border border-gray-200">
+//                                     {hasReview.comment}
+//                                   </p>
+//                                 )}
+//                                 <p className="text-xs text-gray-500 mt-2">
+//                                   Reviewed on {hasReview.createdAt ? format(new Date(hasReview.createdAt), 'MMM d, yyyy') : '—'}
+//                                 </p>
+//                               </div>
+//                             ) : (
+//                               <div className="bg-gradient-to-r from-emerald-50 to-green-50 p-4 rounded-xl border border-emerald-200">
+//                                 <div className="flex items-center justify-between">
+//                                   <div>
+//                                     <p className="text-sm font-semibold text-gray-800 mb-1">Share your experience</p>
+//                                     <p className="text-xs text-gray-600">Help others by leaving a review</p>
+//                                   </div>
+//                                   <button
+//                                     onClick={() => handleLeaveReview(booking)}
+//                                     className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-600 to-green-600 text-white font-semibold rounded-lg hover:shadow-lg hover:from-emerald-700 hover:to-green-700 transition-all"
+//                                   >
+//                                     <Star size={14} />
+//                                     Leave Review
+//                                   </button>
+//                                 </div>
+//                               </div>
+//                             )}
+//                           </div>
+//                         )}
+
+//                         {/* Meta Info */}
+//                         <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500">
+//                           <div className="flex items-center gap-1.5">
+//                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+//                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+//                             </svg>
+//                             <span>Booking ID: #{booking.id}</span>
+//                           </div>
+//                           <div className="flex items-center gap-1.5">
+//                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+//                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+//                             </svg>
+//                             <span>Created: {booking.createdAt ? format(new Date(booking.createdAt), 'MMM d, yyyy') : '—'}</span>
+//                           </div>
+//                         </div>
+//                       </div>
+//                     </div>
+//                   </div>
+                  
+//                   {/* Action Bar for upcoming bookings */}
+//                   {!isPast && booking.status !== 'COMPLETED' && booking.status !== 'CANCELLED' && (
+//                     <div className="border-t border-gray-200 bg-gray-50 px-6 py-4">
+//                       <div className="flex items-center justify-between">
+//                         <div className="text-sm text-gray-600">
+//                           Need to make changes?
+//                         </div>
+//                         <div className="flex gap-3">
+                          
+//                           <button className="px-4 py-2 text-sm font-medium text-rose-700 bg-white border border-rose-300 rounded-lg hover:bg-rose-50 hover:border-rose-400 transition-colors">
+//                             Cancel Booking
+//                           </button>
+//                         </div>
+//                       </div>
+//                     </div>
+//                   )}
+//                 </div>
+//               )
+//             })}
+//           </div>
+//         )}
+//       </div>
+
+//       {/* Review Modal */}
+//       {showReviewModal && selectedBooking && (
+//         <ReviewModal
+//           booking={selectedBooking}
+//           onClose={() => setShowReviewModal(false)}
+//           onReviewSubmitted={handleReviewSubmitted}
+//         />
+//       )}
+//     </div>
+//   )
+// }
+
+
+
+
 import { useEffect, useState } from 'react'
-import { getCustomerBookingsApi } from '@/api/bookings'
+import { getCustomerBookingsApi, cancelBookingApi } from '@/api/bookings'
 import { useAuth } from '@/context/AuthContext'
 import { format, parseISO, isBefore, isToday, isAfter } from 'date-fns'
 import { Link } from 'react-router-dom'
 import reviewAPI from '@/api/reviews'
 import { toast } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 import ReviewModal from '@/components/ReviewModal'
-import { Star, MessageSquare } from 'lucide-react'
+import { Star, MessageSquare, Calendar, Clock, User, Mail, MapPin, Tag, AlertCircle, CheckCircle } from 'lucide-react'
 
 export default function CustomerBookings() {
   const { user } = useAuth()
@@ -999,6 +1505,7 @@ export default function CustomerBookings() {
   const [showReviewModal, setShowReviewModal] = useState(false)
   const [selectedBooking, setSelectedBooking] = useState(null)
   const [bookingReviews, setBookingReviews] = useState({})
+  const [cancellingBookingId, setCancellingBookingId] = useState(null)
 
   const load = async () => {
     if (!customerId) return
@@ -1012,18 +1519,20 @@ export default function CustomerBookings() {
       if (data && data.length > 0) {
         const completedBookings = data.filter(b => b.status === 'COMPLETED')
         const reviewPromises = completedBookings.map(async (booking) => {
-          try {
-            const review = await reviewAPI.getReviewByBookingId(booking.id)
-            return { bookingId: booking.id, review }
-          } catch (error) {
-            // If 404, no review exists - return null
-            if (error.response?.status === 404) {
-              return { bookingId: booking.id, review: null }
-            }
-            console.error(`Failed to fetch review for booking ${booking.id}:`, error)
-            return { bookingId: booking.id, review: null }
-          }
-        })
+  try {
+    console.log(`🔍 Checking review for booking ${booking.id} (${booking.serviceName})`)
+    const review = await reviewAPI.getReviewByBookingId(booking.id)
+    console.log(`📝 Result for booking ${booking.id}:`, review ? 'Has review' : 'No review')
+    return { bookingId: booking.id, review }
+  } catch (error) {
+    console.error(`🚨 Failed to fetch review for booking ${booking.id}:`, error)
+    if (error.response?.status === 404) {
+      return { bookingId: booking.id, review: null }
+    }
+    console.error(`Failed to fetch review for booking ${booking.id}:`, error)
+    return { bookingId: booking.id, review: null }
+  }
+})
         
         const reviewResults = await Promise.all(reviewPromises)
         const reviewsMap = {}
@@ -1033,7 +1542,12 @@ export default function CustomerBookings() {
         setBookingReviews(reviewsMap)
       }
     } catch (e) {
-      setError(e?.response?.data?.message || 'Failed to load bookings')
+      const errorMsg = e?.response?.data?.message || 'Failed to load bookings'
+      setError(errorMsg)
+      toast.error(errorMsg, {
+        position: "top-right",
+        autoClose: 3000,
+      })
     } finally {
       setLoading(false)
     }
@@ -1054,7 +1568,8 @@ export default function CustomerBookings() {
           bg: 'bg-gradient-to-r from-slate-100 to-slate-200',
           text: 'text-slate-700',
           border: 'border-slate-300',
-          label: 'EXPIRED'
+          label: 'EXPIRED',
+          icon: <AlertCircle size={14} />
         }
       }
       if (isToday(bookingDateTime)) {
@@ -1062,7 +1577,8 @@ export default function CustomerBookings() {
           bg: 'bg-gradient-to-r from-purple-100 to-fuchsia-100',
           text: 'text-purple-700',
           border: 'border-purple-300',
-          label: 'TODAY'
+          label: 'TODAY',
+          icon: <Calendar size={14} />
         }
       }
     }
@@ -1073,37 +1589,94 @@ export default function CustomerBookings() {
           bg: 'bg-gradient-to-r from-amber-100 to-orange-100',
           text: 'text-amber-800',
           border: 'border-amber-300',
-          label: 'PENDING'
+          label: 'PENDING',
+          icon: <Clock size={14} />
         }
       case 'CONFIRMED':
         return {
           bg: 'bg-gradient-to-r from-purple-100 to-fuchsia-100',
           text: 'text-purple-800',
           border: 'border-purple-300',
-          label: 'CONFIRMED'
+          label: 'CONFIRMED',
+          icon: <CheckCircle size={14} />
         }
       case 'COMPLETED':
         return {
           bg: 'bg-gradient-to-r from-emerald-100 to-green-100',
           text: 'text-emerald-800',
           border: 'border-emerald-300',
-          label: 'COMPLETED'
+          label: 'COMPLETED',
+          icon: <CheckCircle size={14} />
         }
       case 'CANCELLED':
         return {
           bg: 'bg-gradient-to-r from-rose-100 to-red-100',
           text: 'text-rose-800',
           border: 'border-rose-300',
-          label: 'CANCELLED'
+          label: 'CANCELLED',
+          icon: <AlertCircle size={14} />
         }
       default:
         return {
           bg: 'bg-gradient-to-r from-slate-100 to-slate-200',
           text: 'text-slate-700',
           border: 'border-slate-300',
-          label: status || 'UNKNOWN'
+          label: status || 'UNKNOWN',
+          icon: <AlertCircle size={14} />
         }
     }
+  }
+
+  const handleCancelBooking = async (bookingId) => {
+    if (!window.confirm('Are you sure you want to cancel this booking?')) {
+      return
+    }
+
+    setCancellingBookingId(bookingId)
+    
+    try {
+      await cancelBookingApi(bookingId)
+      
+      // Update local state
+      setItems(prevItems => 
+        prevItems.map(item => 
+          item.id === bookingId 
+            ? { ...item, status: 'CANCELLED' }
+            : item
+        )
+      )
+      
+      toast.success('Booking cancelled successfully!', {
+        position: "top-right",
+        autoClose: 3000,
+        icon: "✅"
+      })
+      
+    } catch (error) {
+      const errorMsg = error?.response?.data?.message || 'Failed to cancel booking'
+      toast.error(errorMsg, {
+        position: "top-right",
+        autoClose: 4000,
+        icon: "❌"
+      })
+      console.error('Cancel booking error:', error)
+    } finally {
+      setCancellingBookingId(null)
+    }
+  }
+
+  const handleRescheduleBooking = (booking) => {
+    toast.info('Reschedule feature coming soon!', {
+      position: "top-right",
+      autoClose: 3000,
+    })
+  }
+
+  const handleContactProvider = (booking) => {
+    toast.info(`Contacting ${booking.providerName || 'provider'}...`, {
+      position: "top-right",
+      autoClose: 3000,
+    })
   }
 
   const filterItems = (filter) => {
@@ -1130,7 +1703,11 @@ export default function CustomerBookings() {
   }
 
   const handleReviewSubmitted = () => {
-    toast.success('Review submitted successfully!')
+    toast.success('Review submitted successfully!', {
+      position: "top-right",
+      autoClose: 3000,
+      icon: "⭐"
+    })
     setShowReviewModal(false)
     load() // Refresh to show the new review
   }
@@ -1164,6 +1741,7 @@ export default function CustomerBookings() {
     ).length,
     completed: items.filter(item => item.status === 'COMPLETED').length,
     pending: items.filter(item => item.status === 'PENDING').length,
+    cancelled: items.filter(item => item.status === 'CANCELLED').length,
   }
 
   return (
@@ -1222,7 +1800,13 @@ export default function CustomerBookings() {
             ].map((filter) => (
               <button
                 key={filter.key}
-                onClick={() => setActiveFilter(filter.key)}
+                onClick={() => {
+                  setActiveFilter(filter.key)
+                  toast.info(`Showing ${filter.label.toLowerCase()}`, {
+                    position: "top-right",
+                    autoClose: 1500,
+                  })
+                }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   activeFilter === filter.key
                     ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg'
@@ -1286,7 +1870,10 @@ export default function CustomerBookings() {
             </p>
             {activeFilter !== 'ALL' && (
               <button
-                onClick={() => setActiveFilter('ALL')}
+                onClick={() => {
+                  setActiveFilter('ALL')
+                  toast.info('Showing all bookings', { position: "top-right", autoClose: 1500 })
+                }}
                 className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white font-semibold rounded-xl hover:shadow-xl hover:from-purple-700 hover:to-fuchsia-700 transition-all duration-200"
               >
                 View All Bookings
@@ -1299,7 +1886,12 @@ export default function CustomerBookings() {
               const statusInfo = getStatusColor(booking.status, booking.bookingDateTime)
               const bookingDate = parseISO(booking.bookingDateTime)
               const isPast = isBefore(bookingDate, new Date())
+              const isUpcoming = isAfter(bookingDate, new Date())
               const hasReview = bookingReviews[booking.id]
+              const canCancel = isUpcoming && 
+                               booking.status !== 'COMPLETED' && 
+                               booking.status !== 'CANCELLED' &&
+                               booking.status !== 'EXPIRED'
               
               return (
                 <div 
@@ -1315,31 +1907,50 @@ export default function CustomerBookings() {
                             <h3 className="text-xl font-bold text-gray-800 mb-1">
                               {booking.serviceName || `Service #${booking.listingId}`}
                             </h3>
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                              </svg>
+                            <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                              <User size={14} className="text-purple-500" />
                               <span>{booking.providerName || `Provider #${booking.providerId}`}</span>
                               {booking.providerEmail && (
                                 <>
                                   <span className="text-gray-400">•</span>
+                                  <Mail size={14} className="text-gray-400" />
                                   <span className="text-gray-500">{booking.providerEmail}</span>
                                 </>
                               )}
                             </div>
+                            {booking.location && (
+                              <div className="flex items-center gap-2 text-sm text-gray-600">
+                                <MapPin size={14} className="text-blue-500" />
+                                <span>{booking.location}</span>
+                              </div>
+                            )}
                           </div>
-                          <div className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${statusInfo.bg} ${statusInfo.text} ${statusInfo.border}`}>
-                            {statusInfo.label}
+                          <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border ${statusInfo.bg} ${statusInfo.text} ${statusInfo.border}`}>
+                            {statusInfo.icon}
+                            <span>{statusInfo.label}</span>
                           </div>
+                        </div>
+
+                        {/* Price and Category */}
+                        <div className="flex items-center gap-4 mb-4">
+                          {booking.price && (
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                              <Tag size={14} className="text-green-600" />
+                              <span className="text-lg font-bold text-gray-900">₹{booking.price}</span>
+                            </div>
+                          )}
+                          {booking.category && (
+                            <div className="px-3 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200 text-sm text-blue-700 font-medium">
+                              {booking.category}
+                            </div>
+                          )}
                         </div>
 
                         {/* Booking Details */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
                             <div className="p-2 bg-white rounded-lg border border-gray-200">
-                              <svg className="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
+                              <Calendar size={16} className="text-purple-600" />
                             </div>
                             <div>
                               <p className="text-xs text-gray-500 font-medium">Date & Time</p>
@@ -1354,9 +1965,7 @@ export default function CustomerBookings() {
 
                           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
                             <div className="p-2 bg-white rounded-lg border border-gray-200">
-                              <svg className="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
+                              <Clock size={16} className="text-purple-600" />
                             </div>
                             <div>
                               <p className="text-xs text-gray-500 font-medium">Duration</p>
@@ -1366,8 +1975,8 @@ export default function CustomerBookings() {
                           </div>
                         </div>
 
-                        {/* Notes */}
-                        {booking.notes && (
+                        {/* Special Instructions */}
+                        {booking.specialInstructions && (
                           <div className="mb-4 p-3 bg-gradient-to-r from-purple-50/50 to-fuchsia-50/50 rounded-lg border border-purple-100">
                             <div className="flex items-start gap-2">
                               <div className="p-1.5 bg-purple-100 rounded">
@@ -1376,8 +1985,8 @@ export default function CustomerBookings() {
                                 </svg>
                               </div>
                               <div className="flex-1">
-                                <p className="text-xs font-medium text-purple-700 mb-1">Your Notes</p>
-                                <p className="text-sm text-gray-700">{booking.notes}</p>
+                                <p className="text-xs font-medium text-purple-700 mb-1">Special Instructions</p>
+                                <p className="text-sm text-gray-700">{booking.specialInstructions}</p>
                               </div>
                             </div>
                           </div>
@@ -1436,9 +2045,7 @@ export default function CustomerBookings() {
                             <span>Booking ID: #{booking.id}</span>
                           </div>
                           <div className="flex items-center gap-1.5">
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
+                            <Clock size={14} className="text-gray-400" />
                             <span>Created: {booking.createdAt ? format(new Date(booking.createdAt), 'MMM d, yyyy') : '—'}</span>
                           </div>
                         </div>
@@ -1446,24 +2053,74 @@ export default function CustomerBookings() {
                     </div>
                   </div>
                   
-                  {/* Action Bar for upcoming bookings */}
-                  {!isPast && booking.status !== 'COMPLETED' && booking.status !== 'CANCELLED' && (
-                    <div className="border-t border-gray-200 bg-gray-50 px-6 py-4">
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm text-gray-600">
-                          Need to make changes?
-                        </div>
-                        <div className="flex gap-3">
-                          <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors">
-                            Reschedule
+                  {/* Action Bar */}
+                  <div className="border-t border-gray-200 bg-gray-50 px-6 py-4">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm text-gray-600">
+                        {canCancel ? (
+                          <span className="flex items-center gap-2">
+                            <AlertCircle size={14} className="text-amber-500" />
+                            Can be cancelled up to 24 hours before appointment
+                          </span>
+                        ) : booking.status === 'CANCELLED' ? (
+                          <span className="text-rose-600">This booking has been cancelled</span>
+                        ) : booking.status === 'COMPLETED' ? (
+                          <span className="text-emerald-600">Service completed successfully</span>
+                        ) : null}
+                      </div>
+                      <div className="flex gap-3">
+                        {canCancel && (
+                          <button 
+                            onClick={() => handleCancelBooking(booking.id)}
+                            disabled={cancellingBookingId === booking.id}
+                            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 ${
+                              cancellingBookingId === booking.id
+                                ? 'bg-gray-300 text-gray-700 cursor-not-allowed'
+                                : 'text-rose-700 bg-white border border-rose-300 hover:bg-rose-50 hover:border-rose-400'
+                            }`}
+                          >
+                            {cancellingBookingId === booking.id ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-rose-600 border-t-transparent rounded-full animate-spin"></div>
+                                Cancelling...
+                              </>
+                            ) : (
+                              <>
+                                <AlertCircle size={14} />
+                                Cancel Booking
+                              </>
+                            )}
                           </button>
-                          <button className="px-4 py-2 text-sm font-medium text-rose-700 bg-white border border-rose-300 rounded-lg hover:bg-rose-50 hover:border-rose-400 transition-colors">
-                            Cancel Booking
+                        )}
+                        
+                        {isUpcoming && booking.status === 'CONFIRMED' && (
+                          <>
+                            <button 
+                              onClick={() => handleRescheduleBooking(booking)}
+                              className="px-4 py-2 text-sm font-medium text-blue-700 bg-white border border-blue-300 rounded-lg hover:bg-blue-50 hover:border-blue-400 transition-colors"
+                            >
+                              Reschedule
+                            </button>
+                            <button 
+                              onClick={() => handleContactProvider(booking)}
+                              className="px-4 py-2 text-sm font-medium text-purple-700 bg-white border border-purple-300 rounded-lg hover:bg-purple-50 hover:border-purple-400 transition-colors"
+                            >
+                              Contact Provider
+                            </button>
+                          </>
+                        )}
+                        
+                        {booking.status === 'PENDING' && (
+                          <button 
+                            onClick={() => toast.info('Please wait for provider confirmation', { position: "top-right" })}
+                            className="px-4 py-2 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-300 rounded-lg hover:bg-amber-100 hover:border-amber-400 transition-colors"
+                          >
+                            Awaiting Confirmation
                           </button>
-                        </div>
+                        )}
                       </div>
                     </div>
-                  )}
+                  </div>
                 </div>
               )
             })}

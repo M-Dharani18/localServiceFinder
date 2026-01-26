@@ -37,6 +37,10 @@ public class Booking {
     @Column(length = 1000)
     private String notes;
 
+    // ✅ ADD THIS FIELD
+    @Column(name = "total_amount")
+    private Double totalAmount = 0.0; // Default value
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 

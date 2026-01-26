@@ -410,6 +410,930 @@
 
 
 
+// import { useEffect, useMemo, useState } from 'react'
+// import { useAuth } from '@/context/AuthContext'
+// import { getProviderListingsApi } from '@/api/listings'
+// import {
+//   createTimeSlotApi,
+//   getProviderTimeSlotsApi,
+//   markSlotAvailableApi,
+//   markSlotUnavailableApi,
+//   deleteTimeSlotApi,
+// } from '@/api/timeslots'
+
+// export default function ProviderTimeSlots() {
+//   const { user } = useAuth()
+//   const providerId = user?.id
+
+//   const [listings, setListings] = useState([])
+//   const [slots, setSlots] = useState([])
+//   const [loading, setLoading] = useState(true)
+//   const [error, setError] = useState('')
+
+//   const [form, setForm] = useState({ listingId: '', date: '', start: '', end: '' })
+//   const [creating, setCreating] = useState(false)
+
+//   const load = async () => {
+//     if (!providerId) return
+//     setLoading(true)
+//     setError('')
+//     try {
+//       const [provListings, provSlots] = await Promise.all([
+//         getProviderListingsApi(providerId),
+//         getProviderTimeSlotsApi(providerId),
+//       ])
+//       setListings(provListings || [])
+//       setSlots(provSlots || [])
+//     } catch (e) {
+//       setError(e?.response?.data?.message || 'Failed to load time slots')
+//     } finally {
+//       setLoading(false)
+//     }
+//   }
+
+//   useEffect(() => { load() }, [providerId])
+
+//   const onChange = (e) => {
+//     const { name, value } = e.target
+//     setForm((f) => ({ ...f, [name]: value }))
+//   }
+
+//   const onCreate = async () => {
+//     if (!form.listingId || !form.date || !form.start || !form.end) return
+//     setCreating(true)
+//     try {
+//       const startIso = new Date(`${form.date}T${form.start}:00`).toISOString()
+//       const endIso = new Date(`${form.date}T${form.end}:00`).toISOString()
+//       await createTimeSlotApi({
+//         providerId,
+//         listingId: Number(form.listingId),
+//         startTime: startIso,
+//         endTime: endIso,
+//       })
+//       setForm({ listingId: '', date: '', start: '', end: '' })
+//       await load()
+//     } catch (e) {
+//       alert(e?.response?.data?.message || e?.response?.data?.error || 'Failed to create slot')
+//     } finally {
+//       setCreating(false)
+//     }
+//   }
+
+//   const toggleAvail = async (slot) => {
+//     try {
+//       if (slot.isAvailable) await markSlotUnavailableApi(slot.id)
+//       else await markSlotAvailableApi(slot.id)
+//       await load()
+//     } catch (e) {
+//       alert(e?.response?.data?.message || 'Failed to update slot')
+//     }
+//   }
+
+//   const onDelete = async (slot) => {
+//     if (!confirm('Delete this time slot?')) return
+//     try {
+//       await deleteTimeSlotApi(slot.id)
+//       await load()
+//     } catch (e) {
+//       alert(e?.response?.data || 'Failed to delete slot')
+//     }
+//   }
+
+//   const formatDate = (dateStr) => {
+//     if (!dateStr) return '—'
+//     const date = new Date(dateStr)
+//     return date.toLocaleString('en-US', { 
+//       weekday: 'short', 
+//       day: '2-digit', 
+//       month: 'short', 
+//       year: 'numeric'
+//     })
+//   }
+
+//   const formatTime = (dateStr) => {
+//     if (!dateStr) return '—'
+//     const date = new Date(dateStr)
+//     return date.toLocaleString('en-US', { 
+//       hour: '2-digit',
+//       minute: '2-digit',
+//       hour12: true
+//     })
+//   }
+
+//   const listingsById = useMemo(() => Object.fromEntries((listings || []).map(l => [l.id, l])), [listings])
+
+//   return (
+//     <div className="fixed inset-0 bg-gradient-to-br from-emerald-50 via-white to-teal-50 overflow-auto pt-20">
+//       <div className="max-w-6xl mx-auto px-6 py-6">
+//         <div className="mb-8">
+//           <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-2">
+//             Manage Availability
+//           </h1>
+//           <p className="text-gray-600">Set your available time slots for customer bookings</p>
+//         </div>
+
+//         {/* Create slot form */}
+//         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 mb-8">
+//           <h2 className="text-xl font-bold text-gray-800 mb-6">🗓️ Create New Time Slot</h2>
+          
+//           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+//             <div>
+//               <label className="block text-sm font-semibold text-gray-700 mb-2">Listing</label>
+//               <select 
+//                 name="listingId" 
+//                 value={form.listingId} 
+//                 onChange={onChange} 
+//                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all outline-none" 
+//               >
+//                 <option value="">Select listing</option>
+//                 {listings.map(l => (
+//                   <option key={l.id} value={l.id}>{l.serviceName || `Listing #${l.id}`}</option>
+//                 ))}
+//               </select>
+//             </div>
+//             <div>
+//               <label className="block text-sm font-semibold text-gray-700 mb-2">Date</label>
+//               <input 
+//                 type="date" 
+//                 name="date" 
+//                 value={form.date} 
+//                 onChange={onChange} 
+//                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all outline-none" 
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-semibold text-gray-700 mb-2">Start Time</label>
+//               <input 
+//                 type="time" 
+//                 name="start" 
+//                 value={form.start} 
+//                 onChange={onChange} 
+//                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all outline-none" 
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-semibold text-gray-700 mb-2">End Time</label>
+//               <input 
+//                 type="time" 
+//                 name="end" 
+//                 value={form.end} 
+//                 onChange={onChange} 
+//                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all outline-none" 
+//               />
+//             </div>
+//           </div>
+          
+//           <div className="flex justify-end">
+//             <button 
+//               disabled={creating} 
+//               onClick={onCreate}
+//               className="px-8 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold shadow-lg hover:shadow-xl hover:from-emerald-700 hover:to-teal-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+//             >
+//               {creating ? 'Creating...' : 'Create Slot'}
+//             </button>
+//           </div>
+//         </div>
+
+//         {/* List slots */}
+//         <div>
+//           <h2 className="text-2xl font-bold text-gray-800 mb-5">⏰ Your Time Slots</h2>
+          
+//           {loading ? (
+//             <div className="text-center py-12">
+//               <div className="inline-block w-8 h-8 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin"></div>
+//               <p className="mt-4 text-gray-600">Loading time slots...</p>
+//             </div>
+//           ) : error ? (
+//             <div className="p-4 rounded-xl border border-red-200 bg-gradient-to-r from-red-50 to-rose-50 text-red-700">
+//               <span className="font-medium">{error}</span>
+//             </div>
+//           ) : slots.length === 0 ? (
+//             <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-gray-300">
+//               <div className="text-5xl mb-4">📅</div>
+//               <p className="text-gray-600 text-lg">No time slots yet. Create your first availability above!</p>
+//             </div>
+//           ) : (
+//             <div className="space-y-4">
+//               {slots
+//                 .slice()
+//                 .sort((a,b) => new Date(a.startTime) - new Date(b.startTime))
+//                 .map((s) => (
+//                 <div key={s.id} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow">
+//                   <div className="flex items-center justify-between gap-4">
+//                     <div className="flex-1">
+//                       <div className="flex items-center gap-3 mb-2">
+//                         <h3 className="font-bold text-lg text-gray-800">
+//                           {listingsById[s.listingId]?.serviceName || s.serviceName || `Listing #${s.listingId}`}
+//                         </h3>
+//                         <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+//                           s.isAvailable 
+//                             ? 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-700 border border-emerald-200' 
+//                             : 'bg-gradient-to-r from-gray-100 to-slate-100 text-gray-600 border border-gray-200'
+//                         }`}>
+//                           {s.isAvailable ? '✓ Available' : '✗ Unavailable'}
+//                         </span>
+//                       </div>
+//                       <div className="flex items-center gap-2 text-gray-600">
+//                         <span className="text-sm font-medium">
+//                           📅 {formatDate(s.startTime)}
+//                         </span>
+//                         <span className="text-gray-400">•</span>
+//                         <span className="text-sm font-medium">
+//                           🕐 {formatTime(s.startTime)} - {formatTime(s.endTime)}
+//                         </span>
+//                       </div>
+//                       <div className="text-xs text-gray-500 mt-1">Slot ID: #{s.id}</div>
+//                     </div>
+//                     <div className="flex items-center gap-2">
+//                       <button 
+//                         className={`min-w-[170px] px-4 py-2 rounded-xl font-semibold transition-all ${
+//                           s.isAvailable
+//                             ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white hover:from-yellow-600 hover:to-orange-600'
+//                             : 'bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600'
+//                         }`}
+//                         onClick={() => toggleAvail(s)}
+//                       >
+//                         {s.isAvailable ? 'Mark Unavailable' : 'Mark Available'}
+//                       </button>
+//                       <button 
+//                         className="px-4 py-2 rounded-xl border-2 border-red-500 text-red-600 font-semibold hover:bg-red-50 transition-all" 
+//                         onClick={() => onDelete(s)}
+//                       >
+//                         Delete
+//                       </button>
+//                     </div>
+//                   </div>
+//                 </div>
+//               ))}
+//             </div>
+//           )}
+//         </div>
+//       </div>
+//     </div>
+//   )
+// }
+
+
+
+// import { useEffect, useMemo, useState } from 'react'
+// import { useAuth } from '@/context/AuthContext'
+// import { getProviderListingsApi } from '@/api/listings'
+// import {
+//   createTimeSlotApi,
+//   getProviderTimeSlotsApi,
+//   markSlotAvailableApi,
+//   markSlotUnavailableApi,
+//   deleteTimeSlotApi,
+// } from '@/api/timeslots'
+
+// export default function ProviderTimeSlots() {
+//   const { user } = useAuth()
+//   const providerId = user?.id
+
+//   const [listings, setListings] = useState([])
+//   const [slots, setSlots] = useState([])
+//   const [loading, setLoading] = useState(true)
+//   const [error, setError] = useState('')
+
+//   const [form, setForm] = useState({ listingId: '', date: '', start: '', end: '' })
+//   const [creating, setCreating] = useState(false)
+
+//   const load = async () => {
+//     if (!providerId) return
+//     setLoading(true)
+//     setError('')
+//     try {
+//       const [provListings, provSlots] = await Promise.all([
+//         getProviderListingsApi(providerId),
+//         getProviderTimeSlotsApi(providerId),
+//       ])
+//       setListings(provListings || [])
+//       setSlots(provSlots || [])
+//     } catch (e) {
+//       setError(e?.response?.data?.message || 'Failed to load time slots')
+//     } finally {
+//       setLoading(false)
+//     }
+//   }
+
+//   useEffect(() => { load() }, [providerId])
+
+//   const onChange = (e) => {
+//     const { name, value } = e.target
+//     setForm((f) => ({ ...f, [name]: value }))
+//   }
+
+//   const onCreate = async () => {
+//     if (!form.listingId || !form.date || !form.start || !form.end) return
+//     setCreating(true)
+//     try {
+//       const startIso = new Date(`${form.date}T${form.start}:00`).toISOString()
+//       const endIso = new Date(`${form.date}T${form.end}:00`).toISOString()
+//       await createTimeSlotApi({
+//         providerId,
+//         listingId: Number(form.listingId),
+//         startTime: startIso,
+//         endTime: endIso,
+//       })
+//       setForm({ listingId: '', date: '', start: '', end: '' })
+//       await load()
+//     } catch (e) {
+//       alert(e?.response?.data?.message || e?.response?.data?.error || 'Failed to create slot')
+//     } finally {
+//       setCreating(false)
+//     }
+//   }
+
+//   const toggleAvail = async (slot) => {
+//     try {
+//       if (slot.isAvailable) await markSlotUnavailableApi(slot.id)
+//       else await markSlotAvailableApi(slot.id)
+//       await load()
+//     } catch (e) {
+//       alert(e?.response?.data?.message || 'Failed to update slot')
+//     }
+//   }
+
+//   const onDelete = async (slot) => {
+//     if (!confirm('Delete this time slot?')) return
+//     try {
+//       await deleteTimeSlotApi(slot.id)
+//       await load()
+//     } catch (e) {
+//       alert(e?.response?.data || 'Failed to delete slot')
+//     }
+//   }
+
+//   const formatDate = (dateStr) => {
+//     if (!dateStr) return '—'
+//     const date = new Date(dateStr)
+//     return date.toLocaleString('en-US', { 
+//       weekday: 'short', 
+//       day: '2-digit', 
+//       month: 'short', 
+//       year: 'numeric'
+//     })
+//   }
+
+//   const formatTime = (dateStr) => {
+//     if (!dateStr) return '—'
+//     const date = new Date(dateStr)
+//     return date.toLocaleString('en-US', { 
+//       hour: '2-digit',
+//       minute: '2-digit',
+//       hour12: true
+//     })
+//   }
+
+//   const listingsById = useMemo(() => Object.fromEntries((listings || []).map(l => [l.id, l])), [listings])
+  
+//   // Filter out rejected listings from dropdown
+//   const approvedListings = listings.filter(l => l.status !== 'rejected')
+
+//   return (
+//     <div className="fixed inset-0 bg-gradient-to-br from-emerald-50 via-white to-teal-50 overflow-auto pt-20">
+//       <div className="max-w-6xl mx-auto px-6 py-6">
+//         <div className="mb-8">
+//           <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-2">
+//             Manage Availability
+//           </h1>
+//           <p className="text-gray-600">Set your available time slots for customer bookings</p>
+//         </div>
+
+//         {/* Create slot form */}
+//         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 mb-8">
+//           <h2 className="text-xl font-bold text-gray-800 mb-6">🗓️ Create New Time Slot</h2>
+          
+//           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+//             <div>
+//               <label className="block text-sm font-semibold text-gray-700 mb-2">Listing</label>
+//               <select 
+//                 name="listingId" 
+//                 value={form.listingId} 
+//                 onChange={onChange} 
+//                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all outline-none" 
+//               >
+//                 <option value="">Select listing</option>
+//                 {approvedListings.map(l => (
+//                   <option key={l.id} value={l.id}>
+//                     {l.serviceName || `Listing #${l.id}`}
+//                     {l.status === 'pending' && ' (Pending Approval)'}
+//                   </option>
+//                 ))}
+//               </select>
+              
+//               {/* Warning message if no approved listings */}
+//               {approvedListings.length === 0 && listings.length > 0 && (
+//                 <div className="mt-2 p-3 rounded-lg bg-yellow-50 border border-yellow-200">
+//                   <p className="text-yellow-700 text-sm">
+//                     All your listings are either rejected or pending approval. 
+//                     You can only create time slots for approved listings.
+//                   </p>
+//                 </div>
+//               )}
+//             </div>
+//             <div>
+//               <label className="block text-sm font-semibold text-gray-700 mb-2">Date</label>
+//               <input 
+//                 type="date" 
+//                 name="date" 
+//                 value={form.date} 
+//                 onChange={onChange} 
+//                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all outline-none" 
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-semibold text-gray-700 mb-2">Start Time</label>
+//               <input 
+//                 type="time" 
+//                 name="start" 
+//                 value={form.start} 
+//                 onChange={onChange} 
+//                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all outline-none" 
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-semibold text-gray-700 mb-2">End Time</label>
+//               <input 
+//                 type="time" 
+//                 name="end" 
+//                 value={form.end} 
+//                 onChange={onChange} 
+//                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all outline-none" 
+//               />
+//             </div>
+//           </div>
+          
+//           <div className="flex justify-end">
+//             <button 
+//               disabled={creating || approvedListings.length === 0} 
+//               onClick={onCreate}
+//               className={`px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all ${
+//                 approvedListings.length === 0
+//                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+//                   : 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700'
+//               }`}
+//             >
+//               {creating ? 'Creating...' : 'Create Slot'}
+//             </button>
+//           </div>
+//         </div>
+
+//         {/* List slots */}
+//         <div>
+//           <h2 className="text-2xl font-bold text-gray-800 mb-5">⏰ Your Time Slots</h2>
+          
+//           {loading ? (
+//             <div className="text-center py-12">
+//               <div className="inline-block w-8 h-8 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin"></div>
+//               <p className="mt-4 text-gray-600">Loading time slots...</p>
+//             </div>
+//           ) : error ? (
+//             <div className="p-4 rounded-xl border border-red-200 bg-gradient-to-r from-red-50 to-rose-50 text-red-700">
+//               <span className="font-medium">{error}</span>
+//             </div>
+//           ) : slots.length === 0 ? (
+//             <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-gray-300">
+//               <div className="text-5xl mb-4">📅</div>
+//               <p className="text-gray-600 text-lg">No time slots yet. Create your first availability above!</p>
+//             </div>
+//           ) : (
+//             <div className="space-y-4">
+//               {slots
+//                 .slice()
+//                 .sort((a,b) => new Date(a.startTime) - new Date(b.startTime))
+//                 .map((s) => {
+//                   const listing = listingsById[s.listingId]
+//                   const isListingRejected = listing?.status === 'rejected'
+                  
+//                   return (
+//                     <div 
+//                       key={s.id} 
+//                       className={`rounded-2xl shadow-lg border p-6 hover:shadow-xl transition-shadow ${
+//                         isListingRejected
+//                           ? 'bg-red-50 border-red-200'
+//                           : 'bg-white border-gray-100'
+//                       }`}
+//                     >
+//                       <div className="flex items-center justify-between gap-4">
+//                         <div className="flex-1">
+//                           <div className="flex items-center gap-3 mb-2">
+//                             <h3 className={`font-bold text-lg ${
+//                               isListingRejected ? 'text-red-800 line-through' : 'text-gray-800'
+//                             }`}>
+//                               {listing?.serviceName || s.serviceName || `Listing #${s.listingId}`}
+//                             </h3>
+//                             <div className="flex gap-2">
+//                               <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+//                                 s.isAvailable 
+//                                   ? 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-700 border border-emerald-200' 
+//                                   : 'bg-gradient-to-r from-gray-100 to-slate-100 text-gray-600 border border-gray-200'
+//                               }`}>
+//                                 {s.isAvailable ? '✓ Available' : '✗ Unavailable'}
+//                               </span>
+                              
+//                               {isListingRejected && (
+//                                 <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-red-100 to-rose-100 text-red-700 border border-red-200">
+//                                   ✗ Listing Rejected
+//                                 </span>
+//                               )}
+//                             </div>
+//                           </div>
+//                           <div className="flex items-center gap-2 text-gray-600">
+//                             <span className="text-sm font-medium">
+//                               📅 {formatDate(s.startTime)}
+//                             </span>
+//                             <span className="text-gray-400">•</span>
+//                             <span className="text-sm font-medium">
+//                               🕐 {formatTime(s.startTime)} - {formatTime(s.endTime)}
+//                             </span>
+//                           </div>
+//                           <div className="text-xs text-gray-500 mt-1">Slot ID: #{s.id}</div>
+                          
+//                           {isListingRejected && listing?.rejectionReason && (
+//                             <div className="mt-2 p-2 rounded-lg bg-red-100 border border-red-300">
+//                               <p className="text-red-700 text-sm font-medium">Rejection Reason:</p>
+//                               <p className="text-red-600 text-sm">{listing.rejectionReason}</p>
+//                             </div>
+//                           )}
+//                         </div>
+//                         <div className="flex items-center gap-2">
+//                           <button 
+//                             className={`min-w-[170px] px-4 py-2 rounded-xl font-semibold transition-all ${
+//                               isListingRejected
+//                                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+//                                 : s.isAvailable
+//                                   ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white hover:from-yellow-600 hover:to-orange-600'
+//                                   : 'bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600'
+//                             }`}
+//                             onClick={() => !isListingRejected && toggleAvail(s)}
+//                             disabled={isListingRejected}
+//                           >
+//                             {isListingRejected ? 'Action Disabled' : (s.isAvailable ? 'Mark Unavailable' : 'Mark Available')}
+//                           </button>
+//                           <button 
+//                             className="px-4 py-2 rounded-xl border-2 border-red-500 text-red-600 font-semibold hover:bg-red-50 transition-all" 
+//                             onClick={() => onDelete(s)}
+//                           >
+//                             Delete
+//                           </button>
+//                         </div>
+//                       </div>
+//                     </div>
+//                   )
+//                 })}
+//             </div>
+//           )}
+//         </div>
+//       </div>
+//     </div>
+//   )
+// }
+
+
+
+// import { useEffect, useMemo, useState } from 'react'
+// import { useAuth } from '@/context/AuthContext'
+// import { getProviderListingsApi } from '@/api/listings'
+// import {
+//   createTimeSlotApi,
+//   getProviderTimeSlotsApi,
+//   markSlotAvailableApi,
+//   markSlotUnavailableApi,
+//   deleteTimeSlotApi,
+// } from '@/api/timeslots'
+
+// export default function ProviderTimeSlots() {
+//   const { user } = useAuth()
+//   const providerId = user?.id
+
+//   const [listings, setListings] = useState([])
+//   const [slots, setSlots] = useState([])
+//   const [loading, setLoading] = useState(true)
+//   const [error, setError] = useState('')
+
+//   const [form, setForm] = useState({ listingId: '', date: '', start: '', end: '' })
+//   const [creating, setCreating] = useState(false)
+
+//   const load = async () => {
+//     if (!providerId) return
+//     setLoading(true)
+//     setError('')
+//     try {
+//       const [provListings, provSlots] = await Promise.all([
+//         getProviderListingsApi(providerId),
+//         getProviderTimeSlotsApi(providerId),
+//       ])
+      
+//       // Add default status to listings if missing
+//       const listingsWithStatus = (provListings || []).map(listing => ({
+//         ...listing,
+//         status: listing.status || 'approved',
+//         rejectionReason: listing.rejectionReason || '',
+//       }))
+      
+//       setListings(listingsWithStatus)
+//       setSlots(provSlots || [])
+//     } catch (e) {
+//       setError(e?.response?.data?.message || 'Failed to load time slots')
+//     } finally {
+//       setLoading(false)
+//     }
+//   }
+
+//   useEffect(() => { load() }, [providerId])
+
+//   const onChange = (e) => {
+//     const { name, value } = e.target
+//     setForm((f) => ({ ...f, [name]: value }))
+//   }
+
+//   const onCreate = async () => {
+//     if (!form.listingId || !form.date || !form.start || !form.end) return
+    
+//     // Check if selected listing is rejected
+//     const selectedListing = listings.find(l => l.id === Number(form.listingId))
+//     if (selectedListing?.status === 'rejected') {
+//       alert('Cannot create time slots for rejected listings. Please select an approved listing.')
+//       return
+//     }
+    
+//     setCreating(true)
+//     try {
+//       const startIso = new Date(`${form.date}T${form.start}:00`).toISOString()
+//       const endIso = new Date(`${form.date}T${form.end}:00`).toISOString()
+//       await createTimeSlotApi({
+//         providerId,
+//         listingId: Number(form.listingId),
+//         startTime: startIso,
+//         endTime: endIso,
+//       })
+//       setForm({ listingId: '', date: '', start: '', end: '' })
+//       await load()
+//     } catch (e) {
+//       alert(e?.response?.data?.message || e?.response?.data?.error || 'Failed to create slot')
+//     } finally {
+//       setCreating(false)
+//     }
+//   }
+
+//   const toggleAvail = async (slot) => {
+//     // Check if listing is rejected
+//     const listing = listings.find(l => l.id === slot.listingId)
+//     if (listing?.status === 'rejected') {
+//       alert('Cannot modify time slots for rejected listings.')
+//       return
+//     }
+    
+//     try {
+//       if (slot.isAvailable) await markSlotUnavailableApi(slot.id)
+//       else await markSlotAvailableApi(slot.id)
+//       await load()
+//     } catch (e) {
+//       alert(e?.response?.data?.message || 'Failed to update slot')
+//     }
+//   }
+
+//   const onDelete = async (slot) => {
+//     if (!confirm('Delete this time slot?')) return
+//     try {
+//       await deleteTimeSlotApi(slot.id)
+//       await load()
+//     } catch (e) {
+//       alert(e?.response?.data || 'Failed to delete slot')
+//     }
+//   }
+
+//   const formatDate = (dateStr) => {
+//     if (!dateStr) return '—'
+//     const date = new Date(dateStr)
+//     return date.toLocaleString('en-US', { 
+//       weekday: 'short', 
+//       day: '2-digit', 
+//       month: 'short', 
+//       year: 'numeric'
+//     })
+//   }
+
+//   const formatTime = (dateStr) => {
+//     if (!dateStr) return '—'
+//     const date = new Date(dateStr)
+//     return date.toLocaleString('en-US', { 
+//       hour: '2-digit',
+//       minute: '2-digit',
+//       hour12: true
+//     })
+//   }
+
+//   const listingsById = useMemo(() => Object.fromEntries((listings || []).map(l => [l.id, l])), [listings])
+  
+//   // Filter out rejected listings from dropdown
+//   const approvedListings = listings.filter(l => l.status !== 'rejected')
+
+//   return (
+//     <div className="fixed inset-0 bg-gradient-to-br from-emerald-50 via-white to-teal-50 overflow-auto pt-20">
+//       <div className="max-w-6xl mx-auto px-6 py-6">
+//         <div className="mb-8">
+//           <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-2">
+//             Manage Availability
+//           </h1>
+//           <p className="text-gray-600">Set your available time slots for customer bookings</p>
+//         </div>
+
+//         {/* Create slot form */}
+//         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 mb-8">
+//           <h2 className="text-xl font-bold text-gray-800 mb-6">🗓️ Create New Time Slot</h2>
+          
+//           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+//             <div>
+//               <label className="block text-sm font-semibold text-gray-700 mb-2">Listing</label>
+//               <select 
+//                 name="listingId" 
+//                 value={form.listingId} 
+//                 onChange={onChange} 
+//                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all outline-none" 
+//               >
+//                 <option value="">Select listing</option>
+//                 {approvedListings.map(l => (
+//                   <option key={l.id} value={l.id}>
+//                     {l.serviceName || `Listing #${l.id}`}
+//                     {l.status === 'pending' && ' (Pending Approval)'}
+//                   </option>
+//                 ))}
+//               </select>
+              
+//               {/* Warning message if no approved listings */}
+//               {approvedListings.length === 0 && listings.length > 0 && (
+//                 <div className="mt-2 p-3 rounded-lg bg-yellow-50 border border-yellow-200">
+//                   <p className="text-yellow-700 text-sm">
+//                     All your listings are either rejected or pending approval. 
+//                     You can only create time slots for approved listings.
+//                   </p>
+//                 </div>
+//               )}
+//             </div>
+//             <div>
+//               <label className="block text-sm font-semibold text-gray-700 mb-2">Date</label>
+//               <input 
+//                 type="date" 
+//                 name="date" 
+//                 value={form.date} 
+//                 onChange={onChange} 
+//                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all outline-none" 
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-semibold text-gray-700 mb-2">Start Time</label>
+//               <input 
+//                 type="time" 
+//                 name="start" 
+//                 value={form.start} 
+//                 onChange={onChange} 
+//                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all outline-none" 
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-semibold text-gray-700 mb-2">End Time</label>
+//               <input 
+//                 type="time" 
+//                 name="end" 
+//                 value={form.end} 
+//                 onChange={onChange} 
+//                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all outline-none" 
+//               />
+//             </div>
+//           </div>
+          
+//           <div className="flex justify-end">
+//             <button 
+//               disabled={creating || approvedListings.length === 0} 
+//               onClick={onCreate}
+//               className={`px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all ${
+//                 approvedListings.length === 0
+//                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+//                   : 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700'
+//               }`}
+//             >
+//               {creating ? 'Creating...' : 'Create Slot'}
+//             </button>
+//           </div>
+//         </div>
+
+//         {/* List slots */}
+//         <div>
+//           <h2 className="text-2xl font-bold text-gray-800 mb-5">⏰ Your Time Slots</h2>
+          
+//           {loading ? (
+//             <div className="text-center py-12">
+//               <div className="inline-block w-8 h-8 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin"></div>
+//               <p className="mt-4 text-gray-600">Loading time slots...</p>
+//             </div>
+//           ) : error ? (
+//             <div className="p-4 rounded-xl border border-red-200 bg-gradient-to-r from-red-50 to-rose-50 text-red-700">
+//               <span className="font-medium">{error}</span>
+//             </div>
+//           ) : slots.length === 0 ? (
+//             <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-gray-300">
+//               <div className="text-5xl mb-4">📅</div>
+//               <p className="text-gray-600 text-lg">No time slots yet. Create your first availability above!</p>
+//             </div>
+//           ) : (
+//             <div className="space-y-4">
+//               {slots
+//                 .slice()
+//                 .sort((a,b) => new Date(a.startTime) - new Date(b.startTime))
+//                 .map((s) => {
+//                   const listing = listingsById[s.listingId]
+//                   const isListingRejected = listing?.status === 'rejected'
+                  
+//                   return (
+//                     <div 
+//                       key={s.id} 
+//                       className={`rounded-2xl shadow-lg border p-6 hover:shadow-xl transition-shadow ${
+//                         isListingRejected
+//                           ? 'bg-red-50 border-red-200'
+//                           : 'bg-white border-gray-100'
+//                       }`}
+//                     >
+//                       <div className="flex items-center justify-between gap-4">
+//                         <div className="flex-1">
+//                           <div className="flex items-center gap-3 mb-2">
+//                             <h3 className={`font-bold text-lg ${
+//                               isListingRejected ? 'text-red-800 line-through' : 'text-gray-800'
+//                             }`}>
+//                               {listing?.serviceName || s.serviceName || `Listing #${s.listingId}`}
+//                             </h3>
+//                             <div className="flex gap-2">
+//                               {!isListingRejected && (
+//                                 <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+//                                   s.isAvailable 
+//                                     ? 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-700 border border-emerald-200' 
+//                                     : 'bg-gradient-to-r from-gray-100 to-slate-100 text-gray-600 border border-gray-200'
+//                                 }`}>
+//                                   {s.isAvailable ? '✓ Available' : '✗ Unavailable'}
+//                                 </span>
+//                               )}
+                              
+//                               {isListingRejected && (
+//                                 <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-red-100 to-rose-100 text-red-700 border border-red-200">
+//                                   ✗ Listing Rejected
+//                                 </span>
+//                               )}
+//                             </div>
+//                           </div>
+//                           <div className="flex items-center gap-2 text-gray-600">
+//                             <span className="text-sm font-medium">
+//                               📅 {formatDate(s.startTime)}
+//                             </span>
+//                             <span className="text-gray-400">•</span>
+//                             <span className="text-sm font-medium">
+//                               🕐 {formatTime(s.startTime)} - {formatTime(s.endTime)}
+//                             </span>
+//                           </div>
+//                           <div className="text-xs text-gray-500 mt-1">Slot ID: #{s.id}</div>
+                          
+//                           {isListingRejected && listing?.rejectionReason && (
+//                             <div className="mt-2 p-2 rounded-lg bg-red-100 border border-red-300">
+//                               <p className="text-red-700 text-sm font-medium">Rejection Reason:</p>
+//                               <p className="text-red-600 text-sm">{listing.rejectionReason}</p>
+//                             </div>
+//                           )}
+//                         </div>
+//                         <div className="flex items-center gap-2">
+//                           <button 
+//                             className={`min-w-[170px] px-4 py-2 rounded-xl font-semibold transition-all ${
+//                               isListingRejected
+//                                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+//                                 : s.isAvailable
+//                                   ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white hover:from-yellow-600 hover:to-orange-600'
+//                                   : 'bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600'
+//                             }`}
+//                             onClick={() => !isListingRejected && toggleAvail(s)}
+//                             disabled={isListingRejected}
+//                           >
+//                             {isListingRejected ? 'Action Disabled' : (s.isAvailable ? 'Mark Unavailable' : 'Mark Available')}
+//                           </button>
+//                           <button 
+//                             className="px-4 py-2 rounded-xl border-2 border-red-500 text-red-600 font-semibold hover:bg-red-50 transition-all" 
+//                             onClick={() => onDelete(s)}
+//                           >
+//                             Delete
+//                           </button>
+//                         </div>
+//                       </div>
+//                     </div>
+//                   )
+//                 })}
+//             </div>
+//           )}
+//         </div>
+//       </div>
+//     </div>
+//   )
+// }
+
+
+
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { getProviderListingsApi } from '@/api/listings'
@@ -441,13 +1365,28 @@ export default function ProviderTimeSlots() {
       const [provListings, provSlots] = await Promise.all([
         getProviderListingsApi(providerId),
         getProviderTimeSlotsApi(providerId),
-      ])
-      setListings(provListings || [])
-      setSlots(provSlots || [])
+      ]);
+      
+      console.log('Raw listings from API:', provListings); // Debug log
+      
+      // Normalize status to lowercase for consistent comparison
+      const listingsWithStatus = (provListings || []).map(listing => {
+        const status = listing.status ? listing.status.toLowerCase() : 'approved';
+        return {
+          ...listing,
+          status: status,
+          rejectionReason: listing.rejectionReason || '',
+        };
+      });
+      
+      console.log('Processed listings:', listingsWithStatus); // Debug log
+      
+      setListings(listingsWithStatus);
+      setSlots(provSlots || []);
     } catch (e) {
-      setError(e?.response?.data?.message || 'Failed to load time slots')
+      setError(e?.response?.data?.message || 'Failed to load time slots');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -460,6 +1399,17 @@ export default function ProviderTimeSlots() {
 
   const onCreate = async () => {
     if (!form.listingId || !form.date || !form.start || !form.end) return
+    
+    // Check if selected listing is rejected
+    const selectedListing = listings.find(l => l.id === Number(form.listingId))
+    if (selectedListing) {
+      const status = selectedListing.status ? selectedListing.status.toLowerCase() : 'approved';
+      if (status === 'rejected') {
+        alert('Cannot create time slots for rejected listings. Please select an approved listing.')
+        return
+      }
+    }
+    
     setCreating(true)
     try {
       const startIso = new Date(`${form.date}T${form.start}:00`).toISOString()
@@ -480,6 +1430,16 @@ export default function ProviderTimeSlots() {
   }
 
   const toggleAvail = async (slot) => {
+    // Check if listing is rejected
+    const listing = listings.find(l => l.id === slot.listingId)
+    if (listing) {
+      const status = listing.status ? listing.status.toLowerCase() : 'approved';
+      if (status === 'rejected') {
+        alert('Cannot modify time slots for rejected listings.')
+        return
+      }
+    }
+    
     try {
       if (slot.isAvailable) await markSlotUnavailableApi(slot.id)
       else await markSlotAvailableApi(slot.id)
@@ -521,6 +1481,14 @@ export default function ProviderTimeSlots() {
   }
 
   const listingsById = useMemo(() => Object.fromEntries((listings || []).map(l => [l.id, l])), [listings])
+  
+  // Filter out rejected listings from dropdown
+  const approvedListings = listings.filter(l => {
+    const status = l.status ? l.status.toLowerCase() : 'approved';
+    return status !== 'rejected';
+  })
+
+  console.log('Approved listings for dropdown:', approvedListings); // Debug log
 
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-emerald-50 via-white to-teal-50 overflow-auto pt-20">
@@ -546,10 +1514,37 @@ export default function ProviderTimeSlots() {
                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all outline-none" 
               >
                 <option value="">Select listing</option>
-                {listings.map(l => (
-                  <option key={l.id} value={l.id}>{l.serviceName || `Listing #${l.id}`}</option>
-                ))}
+                {approvedListings.map(l => {
+                  const status = l.status ? l.status.toLowerCase() : 'approved';
+                  return (
+                    <option key={l.id} value={l.id}>
+                      {l.serviceName || `Listing #${l.id}`}
+                      {status === 'pending' && ' (Pending Approval)'}
+                      {status === 'flagged' && ' (Flagged)'}
+                    </option>
+                  );
+                })}
               </select>
+              
+              {/* Debug info - remove in production */}
+              <div className="mt-2 text-xs text-gray-500">
+                Total listings: {listings.length} | 
+                Approved : {approvedListings.length} |
+                Rejected: {listings.filter(l => {
+                  const status = l.status ? l.status.toLowerCase() : 'approved';
+                  return status === 'rejected';
+                }).length}
+              </div>
+              
+              {/* Warning message if no approved listings */}
+              {approvedListings.length === 0 && listings.length > 0 && (
+                <div className="mt-2 p-3 rounded-lg bg-yellow-50 border border-yellow-200">
+                  <p className="text-yellow-700 text-sm">
+                    All your listings are either rejected or pending approval. 
+                    You can only create time slots for approved listings.
+                  </p>
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Date</label>
@@ -585,9 +1580,13 @@ export default function ProviderTimeSlots() {
           
           <div className="flex justify-end">
             <button 
-              disabled={creating} 
+              disabled={creating || approvedListings.length === 0} 
               onClick={onCreate}
-              className="px-8 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold shadow-lg hover:shadow-xl hover:from-emerald-700 hover:to-teal-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+              className={`px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all ${
+                approvedListings.length === 0
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700'
+              }`}
             >
               {creating ? 'Creating...' : 'Create Slot'}
             </button>
@@ -617,54 +1616,88 @@ export default function ProviderTimeSlots() {
               {slots
                 .slice()
                 .sort((a,b) => new Date(a.startTime) - new Date(b.startTime))
-                .map((s) => (
-                <div key={s.id} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-bold text-lg text-gray-800">
-                          {listingsById[s.listingId]?.serviceName || s.serviceName || `Listing #${s.listingId}`}
-                        </h3>
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          s.isAvailable 
-                            ? 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-700 border border-emerald-200' 
-                            : 'bg-gradient-to-r from-gray-100 to-slate-100 text-gray-600 border border-gray-200'
-                        }`}>
-                          {s.isAvailable ? '✓ Available' : '✗ Unavailable'}
-                        </span>
+                .map((s) => {
+                  const listing = listingsById[s.listingId]
+                  const isListingRejected = listing && listing.status ? listing.status.toLowerCase() === 'rejected' : false;
+                  
+                  return (
+                    <div 
+                      key={s.id} 
+                      className={`rounded-2xl shadow-lg border p-6 hover:shadow-xl transition-shadow ${
+                        isListingRejected
+                          ? 'bg-red-50 border-red-200'
+                          : 'bg-white border-gray-100'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className={`font-bold text-lg ${
+                              isListingRejected ? 'text-red-800 line-through' : 'text-gray-800'
+                            }`}>
+                              {listing?.serviceName || s.serviceName || `Listing #${s.listingId}`}
+                            </h3>
+                            <div className="flex gap-2">
+                              {!isListingRejected && (
+                                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                  s.isAvailable 
+                                    ? 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-700 border border-emerald-200' 
+                                    : 'bg-gradient-to-r from-gray-100 to-slate-100 text-gray-600 border border-gray-200'
+                                }`}>
+                                  {s.isAvailable ? '✓ Available' : '✗ Unavailable'}
+                                </span>
+                              )}
+                              
+                              {isListingRejected && (
+                                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-red-100 to-rose-100 text-red-700 border border-red-200">
+                                  ✗ Listing Rejected
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <span className="text-sm font-medium">
+                              📅 {formatDate(s.startTime)}
+                            </span>
+                            <span className="text-gray-400">•</span>
+                            <span className="text-sm font-medium">
+                              🕐 {formatTime(s.startTime)} - {formatTime(s.endTime)}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">Slot ID: #{s.id}</div>
+                          
+                          {isListingRejected && listing?.rejectionReason && (
+                            <div className="mt-2 p-2 rounded-lg bg-red-100 border border-red-300">
+                              <p className="text-red-700 text-sm font-medium">Rejection Reason:</p>
+                              <p className="text-red-600 text-sm">{listing.rejectionReason}</p>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button 
+                            className={`min-w-[170px] px-4 py-2 rounded-xl font-semibold transition-all ${
+                              isListingRejected
+                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                : s.isAvailable
+                                  ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white hover:from-yellow-600 hover:to-orange-600'
+                                  : 'bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600'
+                            }`}
+                            onClick={() => !isListingRejected && toggleAvail(s)}
+                            disabled={isListingRejected}
+                          >
+                            {isListingRejected ? 'Action Disabled' : (s.isAvailable ? 'Mark Unavailable' : 'Mark Available')}
+                          </button>
+                          <button 
+                            className="px-4 py-2 rounded-xl border-2 border-red-500 text-red-600 font-semibold hover:bg-red-50 transition-all" 
+                            onClick={() => onDelete(s)}
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <span className="text-sm font-medium">
-                          📅 {formatDate(s.startTime)}
-                        </span>
-                        <span className="text-gray-400">•</span>
-                        <span className="text-sm font-medium">
-                          🕐 {formatTime(s.startTime)} - {formatTime(s.endTime)}
-                        </span>
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">Slot ID: #{s.id}</div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button 
-                        className={`min-w-[170px] px-4 py-2 rounded-xl font-semibold transition-all ${
-                          s.isAvailable
-                            ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white hover:from-yellow-600 hover:to-orange-600'
-                            : 'bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600'
-                        }`}
-                        onClick={() => toggleAvail(s)}
-                      >
-                        {s.isAvailable ? 'Mark Unavailable' : 'Mark Available'}
-                      </button>
-                      <button 
-                        className="px-4 py-2 rounded-xl border-2 border-red-500 text-red-600 font-semibold hover:bg-red-50 transition-all" 
-                        onClick={() => onDelete(s)}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                  )
+                })}
             </div>
           )}
         </div>

@@ -15,6 +15,7 @@ import com.quickserve.backend.service.BookingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.quickserve.backend.service.NotificationService;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -36,23 +37,12 @@ public class BookingServiceImpl implements BookingService {
     @Autowired
     private TimeSlotRepository timeSlotRepository;
 
+    @Autowired
+    private NotificationService notificationService;
+
     @Override
     public BookingResponse createBooking(BookingRequest request) {
-//        // 1. Validate customer
-//        User customer = userRepository.findById(request.getCustomerId())
-//                .orElseThrow(() -> new RuntimeException("Customer not found"));
-//
-//        if (!"CUSTOMER".equalsIgnoreCase(customer.getRole())) {
-//            throw new RuntimeException("Only customers can create bookings. User role: " + customer.getRole());
-//        }
-//
-//        // 2. Validate provider
-//        User provider = userRepository.findById(request.getProviderId())
-//                .orElseThrow(() -> new RuntimeException("Provider not found"));
-//
-//        if (!"PROVIDER".equalsIgnoreCase(provider.getRole())) {
-//            throw new RuntimeException("Invalid provider. User role: " + provider.getRole());
-//        }
+
 
         System.out.println("\n" + "=".repeat(50));
         System.out.println("=== START createBooking ===");
@@ -118,12 +108,6 @@ public class BookingServiceImpl implements BookingService {
                 request.getListingId(),
                 LocalDateTime.now()
         );
-        // ============ ADD THIS DEBUG CODE HERE ============
-        System.out.println("\n=== DEBUG: Time Slot Analysis ===");
-        System.out.println("Current time (now): " + LocalDateTime.now());
-        System.out.println("Booking time requested: " + request.getBookingDateTime());
-        System.out.println("Listing ID: " + request.getListingId());
-        System.out.println("Number of available slots found: " + availableSlots.size());
 
         if (availableSlots.isEmpty()) {
             System.out.println("WARNING: No available slots found with current filters!");
@@ -167,7 +151,7 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new RuntimeException("No available time slot found for this booking time"));
 
         // 7. ✅ CRITICAL FIX: Check if this specific time slot is already booked
-        boolean isSlotBooked = bookingRepository.isSlotAlreadyBooked(
+        boolean isSlotBooked = bookingRepository.existsByProviderAndListingAndDateTime(
                 request.getProviderId(),
                 request.getListingId(),
                 matchingSlot.getStartTime()
@@ -202,6 +186,9 @@ public class BookingServiceImpl implements BookingService {
         booking.setStatus(BookingStatus.PENDING);
 
         Booking savedBooking = bookingRepository.save(booking);
+
+        // CREATE NOTIFICATION - ADD THIS
+        notificationService.createBookingNotification(savedBooking, "CREATED");
 
         // 10. ✅ Mark the time slot as unavailable
         matchingSlot.setIsAvailable(false);
@@ -326,6 +313,9 @@ public class BookingServiceImpl implements BookingService {
         booking.setStatus(BookingStatus.CANCELLED);
         Booking updatedBooking = bookingRepository.save(booking);
 
+        // CREATE NOTIFICATION - ADD THIS
+        notificationService.createBookingNotification(updatedBooking, "CANCELLED");
+
         return mapToResponse(updatedBooking);
     }
 
@@ -341,6 +331,9 @@ public class BookingServiceImpl implements BookingService {
         booking.setStatus(BookingStatus.CONFIRMED);
         Booking updatedBooking = bookingRepository.save(booking);
 
+        // CREATE NOTIFICATION - ADD THIS
+        notificationService.createBookingNotification(updatedBooking, "CONFIRMED");
+
         return mapToResponse(updatedBooking);
     }
 
@@ -355,6 +348,9 @@ public class BookingServiceImpl implements BookingService {
 
         booking.setStatus(BookingStatus.COMPLETED);
         Booking updatedBooking = bookingRepository.save(booking);
+
+        // CREATE NOTIFICATION - ADD THIS
+        notificationService.createBookingNotification(updatedBooking, "COMPLETED");
 
         return mapToResponse(updatedBooking);
     }

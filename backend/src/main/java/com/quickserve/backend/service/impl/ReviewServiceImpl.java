@@ -12,6 +12,7 @@ import com.quickserve.backend.service.ReviewService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.quickserve.backend.service.NotificationService;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -25,6 +26,9 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Autowired
     private BookingRepository bookingRepository;
+
+    @Autowired
+    private NotificationService notificationService;
 
     @Override
     public ReviewResponse createReview(ReviewRequest request) {
@@ -62,6 +66,9 @@ public class ReviewServiceImpl implements ReviewService {
         review.setComment(request.getComment());
 
         Review savedReview = reviewRepository.save(review);
+
+        // CREATE NOTIFICATION - ADD THIS
+        notificationService.createReviewNotification(savedReview);
 
         return mapToResponse(savedReview);
     }

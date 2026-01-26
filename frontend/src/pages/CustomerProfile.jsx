@@ -1,3 +1,5 @@
+import { customerProfileAPI } from '@/api/customer';
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -61,15 +63,41 @@ const CustomerProfile = () => {
     }
   }, [user]);
 
-  const loadProfileData = () => {
+  const loadProfileData = async () => {
+  try {
+    // Try to load from customer profile API first
+    const profile = await customerProfileAPI.getProfile(user.id);
+    
+    if (profile) {
+      setProfileData({
+        fullName: profile.fullName || '',
+        email: profile.email || user.email || '',
+        phone: profile.phone || '',
+        address: profile.address || '',
+        bio: profile.bio || 'Tell us about yourself...'
+      });
+    } else {
+      // Fallback to user data if no profile exists
+      setProfileData({
+        fullName: user.fullName || user.username || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        address: user.address || '',
+        bio: 'Tell us about yourself...'
+      });
+    }
+  } catch (error) {
+    console.error('Failed to load profile:', error);
+    // Fallback to user data
     setProfileData({
       fullName: user.fullName || user.username || '',
       email: user.email || '',
       phone: user.phone || '',
       address: user.address || '',
-      bio: user.bio || 'Tell us about yourself...'
+      bio: 'Tell us about yourself...'
     });
-  };
+  }
+};
 
   const loadReviews = async () => {
   try {
@@ -135,14 +163,86 @@ const CustomerProfile = () => {
   };
 
   const handleSaveProfile = async () => {
-    try {
-      await updateProfile(profileData);
-      toast.success('Profile updated successfully!');
-      setEditing(false);
-    } catch (error) {
-      toast.error('Failed to update profile');
+  try {
+    // Prepare data for backend
+    const profilePayload = {
+      customerId: user.id,
+      fullName: profileData.fullName.trim(),
+      phone: profileData.phone ? profileData.phone.trim() : '',
+      address: profileData.address ? profileData.address.trim() : '',
+      bio: profileData.bio ? profileData.bio.trim() : 'Tell us about yourself...'
+    };
+
+    console.log('Saving profile payload:', profilePayload);
+
+    // Validate required fields
+    if (!profilePayload.fullName) {
+      toast.error('Full name is required');
+      return;
     }
-  };
+
+    if (!profilePayload.email) {
+      toast.error('Email is required');
+      return;
+    }
+
+    // Check if profile exists first
+    const exists = await customerProfileAPI.checkProfileExists(user.id);
+    console.log('Profile exists:', exists);
+
+    let savedProfile;
+    if (exists) {
+      // Update existing profile
+      console.log('Updating existing profile...');
+      savedProfile = await customerProfileAPI.updateProfile(user.id, profilePayload);
+    } else {
+      // Create new profile
+      console.log('Creating new profile...');
+      savedProfile = await customerProfileAPI.saveProfile(profilePayload);
+    }
+    
+    console.log('Profile saved successfully:', savedProfile);
+    
+    // Update local user state if needed
+    if (updateProfile) {
+      await updateProfile({
+        fullName: savedProfile.fullName,
+        email: savedProfile.email,
+        phone: savedProfile.phone,
+        address: savedProfile.address,
+        bio: savedProfile.bio
+      });
+    }
+    
+    toast.success('Profile updated successfully!');
+    setEditing(false);
+    
+    // Reload profile data to get updated info
+    await loadProfileData();
+    
+  } catch (error) {
+    console.error('Save profile error details:', error);
+    
+    // Extract error message from backend response
+    let errorMessage = 'Failed to update profile';
+    
+    if (error.response?.data) {
+      // Check for different error response formats
+      if (error.response.data.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.response.data.message) {
+        errorMessage = error.response.data.message;
+      } else if (typeof error.response.data === 'string') {
+        errorMessage = error.response.data;
+      }
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    console.error('Error message:', errorMessage);
+    toast.error(errorMessage);
+  }
+};
 
   const renderStars = (rating, size = 16) => {
     return (

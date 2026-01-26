@@ -32,3 +32,6 @@ export const searchProvidersApi = (keyword) =>
 // Update provider status (activate/deactivate)
 export const updateProviderStatusApi = (providerId, status) => 
   api.put(`/admin/providers/${providerId}/status`, null, { params: { status } }).then(r => r.data)
+
+export const getProviderAnalyticsApi = (providerId) => 
+  api.get(`/provider/analytics/${providerId}`).then(r => r.data)

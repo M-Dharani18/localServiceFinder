@@ -1,6 +1,8 @@
 package com.quickserve.backend.dto;
 
 import lombok.Data;
+import com.quickserve.backend.model.ListingStatus;
+import java.time.LocalDateTime;
 
 @Data
 public class ListingResponse {
@@ -18,4 +20,9 @@ public class ListingResponse {
     private Double latitude;
     private Double longitude;
     private Double distance; // Distance from search location (in km)
+
+    private ListingStatus status;        // PENDING, APPROVED, REJECTED, FLAGGED
+    private String adminNotes;           // Notes from admin when approving/rejecting
+    private LocalDateTime createdAt;
+    private LocalDateTime reviewedAt;    // When it was reviewed by admin
 }
